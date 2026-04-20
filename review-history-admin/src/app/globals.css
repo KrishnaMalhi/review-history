@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a2e;
+  --primary: #00b67a;
+  --primary-dark: #009567;
+  --primary-light: #e6f9f1;
+  --secondary: #1a1a2e;
+  --secondary-light: #2a2a4e;
+  --accent: #ff6b35;
+  --accent-light: #fff3ee;
+  --accent-dark: #e55a25;
+  --star: #ffc107;
+  --navy: #0f1b44;
+  --navy-light: #1e3a6e;
+  --surface: #f7f7fa;
+  --border: #e5e7eb;
+  --muted: #6b7280;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-secondary-light: var(--secondary-light);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-dark: var(--accent-dark);
+  --color-star: var(--star);
+  --color-navy: var(--navy);
+  --color-navy-light: var(--navy-light);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--surface);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Gradient utilities */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #00d68f 100%);
+}
+.gradient-accent {
+  background: linear-gradient(135deg, var(--accent) 0%, #ff8f5e 100%);
+}
+.gradient-navy {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+}
+.gradient-sidebar {
+  background: linear-gradient(180deg, var(--secondary) 0%, var(--navy) 100%);
+}
+
+/* Card hover */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-hover:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Section divider */
+.section-divider {
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 50%, var(--star) 100%);
+}
+
+/* Table styles */
+.admin-table thead {
+  background: var(--surface);
+}
+.admin-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+.admin-table tbody tr:hover {
+  background-color: rgba(0, 182, 122, 0.04);
+}
