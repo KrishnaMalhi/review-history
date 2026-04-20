@@ -7,15 +7,20 @@ import {
   Card, CardContent, CardHeader, Badge, Button, StarRating,
   Skeleton, ReviewSkeleton, EmptyState,
 } from '@/components/ui';
-import { useEntity, useEntityReviews, useEntityTrustScore, useVote, useReportReview, useCreateClaim, useUpdateReview, useDeleteReview, useSavedEntities, useSaveEntity, useUnsaveEntity } from '@/hooks/use-api';
+import { useEntity, useEntityReviews, useEntityTrustScore, useVote, useReportReview, useCreateClaim, useUpdateReview, useDeleteReview, useSavedEntities, useSaveEntity, useUnsaveEntity, useEntityBadges, useResponseMetrics, useCategoryProfile, useTrackPageView } from '@/hooks/use-api';
 import { useAuth } from '@/lib/auth-context';
 import { formatRelativeTime, ratingColor, ratingBgColor } from '@/lib/utils';
 import { TrustScoreBadge, TrustScoreBreakdown } from '@/components/shared/trust-score';
 import { useToast } from '@/components/shared/toast';
 import { JsonLd } from '@/components/seo/json-ld';
 import { Breadcrumbs } from '@/components/seo/breadcrumbs';
+import { EntityBadgeDisplay } from '@/components/shared/badge-display';
+import { ResponseMetricsBar } from '@/components/shared/response-metrics-bar';
+import { FollowButton } from '@/components/shared/follow-button';
+import { CategoryProfileCard } from '@/components/shared/category-profile-card';
+import { CommunityValidation } from '@/components/shared/community-validation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function EntityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -34,6 +39,15 @@ export default function EntityDetailPage({ params }: { params: Promise<{ id: str
     page: reviewPage,
     limit: 10,
   });
+  const { data: entityBadges } = useEntityBadges(id);
+  const { data: responseMetrics } = useResponseMetrics(id);
+  const { data: categoryProfile } = useCategoryProfile(id);
+  const trackPageView = useTrackPageView();
+
+  useEffect(() => {
+    trackPageView.mutate(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (entityLoading) {
     return (
@@ -135,6 +149,20 @@ export default function EntityDetailPage({ params }: { params: Promise<{ id: str
             <p className="mt-4 text-muted leading-relaxed">{entity.description}</p>
           )}
 
+          {/* Entity Badges */}
+          {entityBadges && entityBadges.length > 0 && (
+            <div className="mt-4">
+              <EntityBadgeDisplay badges={entityBadges} />
+            </div>
+          )}
+
+          {/* Response Metrics */}
+          {responseMetrics && (
+            <div className="mt-4">
+              <ResponseMetricsBar metrics={responseMetrics} />
+            </div>
+          )}
+
           {/* Trust Score Breakdown (collapsible) */}
           {trustScore && <TrustBreakdownToggle breakdown={trustScore} />}
 
@@ -161,6 +189,9 @@ export default function EntityDetailPage({ params }: { params: Promise<{ id: str
               {isSaved ? 'Saved' : 'Save Entity'}
             </button>
           )}
+
+          {/* Follow Button */}
+          <FollowButton entityId={id} entityName={entity?.name} />
 
           {/* Claim Ownership */}
           {isAuthenticated && !showClaimForm && (
@@ -204,6 +235,13 @@ export default function EntityDetailPage({ params }: { params: Promise<{ id: str
             </div>
           )}
         </div>
+
+        {/* Category-Specific Profile */}
+        {categoryProfile && (
+          <div className="mb-8">
+            <CategoryProfileCard profile={categoryProfile} />
+          </div>
+        )}
 
         {/* Write Review CTA */}
         <div className="mb-8 flex items-center justify-between rounded-2xl border border-border/80 bg-white p-5 relative overflow-hidden">
@@ -415,6 +453,8 @@ function ReviewCard({ review, entityId }: { review: any; entityId: string }) {
 
         {/* Vote / Report bar */}
         <div className="mt-4 flex items-center gap-4 border-t border-border pt-3">
+          <CommunityValidation reviewId={review.id} />
+          <div className="flex-1" />
           <button
             disabled={!isAuthenticated || voteMutation.isPending}
             onClick={() => voteMutation.mutate('helpful')}

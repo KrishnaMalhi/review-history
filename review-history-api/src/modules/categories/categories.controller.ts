@@ -1,5 +1,5 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { Public } from '../../common/decorators';
 
@@ -24,9 +24,14 @@ export class CategoriesController {
 
   @Public()
   @Get('cities')
-  @ApiOperation({ summary: 'List all active cities' })
-  getCities() {
-    return this.categoriesService.getCities();
+  @ApiOperation({ summary: 'List cities (PK by default)' })
+  @ApiQuery({ name: 'country', required: false, description: 'ISO country code filter (default: PK)' })
+  @ApiQuery({ name: 'q', required: false, description: 'Search by city name' })
+  getCities(
+    @Query('country') country?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.categoriesService.getCities(country || 'PK', q);
   }
 
   @Public()

@@ -211,6 +211,52 @@ export interface FeedReview {
   replies: ReviewReply[];
 }
 
+// —— Blogs ——
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content?: string;
+  coverImage: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  author: {
+    id: string;
+    displayName: string | null;
+  };
+}
+
+// —— Discussions ——
+export interface DiscussionComment {
+  id: string;
+  body: string;
+  isAnonymous: boolean;
+  createdAt: string;
+  author: {
+    id: string | null;
+    displayName: string;
+  };
+}
+
+export interface DiscussionPost {
+  id: string;
+  title: string | null;
+  body: string;
+  isAnonymous: boolean;
+  createdAt: string;
+  likeCount: number;
+  dislikeCount: number;
+  commentCount: number;
+  userReaction?: 'like' | 'dislike' | null;
+  author: {
+    id: string | null;
+    displayName: string;
+  };
+  comments: DiscussionComment[];
+}
+
 // ── Vote ──
 export type VoteType = 'helpful' | 'unhelpful' | 'not_helpful' | 'seems_fake' | 'fake';
 
@@ -229,4 +275,162 @@ export interface Notification {
   payload?: Record<string, unknown> | null;
   readAt: string | null;
   createdAt: string;
+}
+
+// ── Badge ──
+export type BadgeType =
+  | 'first_review' | 'five_reviews' | 'ten_reviews' | 'fifty_reviews'
+  | 'streak_7' | 'streak_30' | 'community_helper' | 'verified_reviewer'
+  | 'quality_reviewer' | 'top_contributor'
+  | 'employee_trusted' | 'fast_responder' | 'responsive_employer'
+  | 'school_rated' | 'doctor_rated' | 'product_rated' | 'highly_rated';
+
+export interface UserBadge {
+  id: string;
+  badgeType: BadgeType;
+  awardedAt: string;
+  isPermanent: boolean;
+}
+
+export interface EntityBadge {
+  id: string;
+  badgeType: BadgeType;
+  awardedAt: string;
+}
+
+// ── Entity Response Metrics ──
+export interface ResponseMetrics {
+  id: string;
+  entityId: string;
+  responseRate: number;
+  avgResponseTimeHours: number;
+  issuesResolvedCount: number;
+}
+
+// ── Category Profile Extensions ──
+export interface EmployerProfile {
+  id: string;
+  entityId: string;
+  description: string | null;
+  logoUrl: string | null;
+  coverImageUrl: string | null;
+  websiteUrl: string | null;
+  industry: string | null;
+  employerSize: string | null;
+  foundedYear: number | null;
+  benefits: string[];
+  socialLinks: Record<string, string>;
+  isVerified: boolean;
+  profileCompletion: number;
+}
+
+export interface SchoolProfile {
+  id: string;
+  entityId: string;
+  description: string | null;
+  logoUrl: string | null;
+  websiteUrl: string | null;
+  schoolType: string | null;
+  curriculum: string | null;
+  feeRangeMin: number | null;
+  feeRangeMax: number | null;
+  foundedYear: number | null;
+  totalStudents: number | null;
+  facilities: string[];
+  branches: string[];
+}
+
+export interface MedicalProfile {
+  id: string;
+  entityId: string;
+  description: string | null;
+  logoUrl: string | null;
+  websiteUrl: string | null;
+  specialization: string | null;
+  qualifications: string | null;
+  experienceYears: number | null;
+  hospitalAffiliation: string | null;
+  consultationFee: number | null;
+  pmdcNumber: string | null;
+  timings: Record<string, string>;
+  services: string[];
+}
+
+export interface ProductProfile {
+  id: string;
+  entityId: string;
+  description: string | null;
+  brand: string | null;
+  imageUrl: string | null;
+  productCategory: string | null;
+  barcode: string | null;
+  variants: string[];
+  nutrition: Record<string, unknown>;
+}
+
+export type CategoryProfile = EmployerProfile | SchoolProfile | MedicalProfile | ProductProfile | null;
+
+// ── Follow ──
+export interface FollowTarget {
+  id: string;
+  displayName?: string;
+  nameEn?: string;
+  key?: string;
+  icon?: string;
+  averageRating?: number | string | null;
+  reviewCount?: number;
+}
+
+export interface Follow {
+  id: string;
+  targetType: 'entity' | 'category';
+  targetId: string;
+  targetName?: string;
+  target?: FollowTarget | null;
+  createdAt: string;
+}
+
+// ── Review Streak ──
+export interface ReviewStreak {
+  currentStreak: number;
+  longestStreak: number;
+  lastReviewDate: string | null;
+}
+
+// ── Campaign ──
+export interface Campaign {
+  id: string;
+  title: string;
+  description: string | null;
+  categoryKey: string | null;
+  targetGoal: number;
+  status: 'draft' | 'active' | 'ended';
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  _count?: { participants: number };
+}
+
+// ── Community Validation ──
+export interface CommunityValidationSummary {
+  confirmed: number;
+  outdated: number;
+  resolved: number;
+  total: number;
+}
+
+// ── Onboarding ──
+export interface OnboardingPreference {
+  categoryKeys: string[];
+  selectedCityId: string | null;
+  isComplete: boolean;
+}
+
+// ── Review Quality ──
+export interface ReviewQualityScore {
+  totalScore: number;
+  lengthScore: number;
+  detailScore: number;
+  balanceScore: number;
+  helpfulRatio: number;
 }

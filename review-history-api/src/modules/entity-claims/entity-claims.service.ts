@@ -130,4 +130,19 @@ export class EntityClaimsService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async getClaimDetail(claimId: string) {
+    const claim = await this.prisma.entityClaim.findUnique({
+      where: { id: claimId },
+      include: {
+        entity: { select: { id: true, displayName: true, category: { select: { key: true, nameEn: true } } } },
+        requester: { select: { id: true, displayName: true, phoneE164: true, role: true, createdAt: true } },
+      },
+    });
+    if (!claim) throw new NotFoundException('Claim not found');
+    return {
+      ...claim,
+      entityName: claim.entity?.displayName ?? null,
+    };
+  }
 }

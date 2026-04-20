@@ -1,5 +1,6 @@
-import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsArray, MaxLength, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsArray, MaxLength, Matches, ValidateNested, IsObject } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
 
 export class CreateReviewDto {
@@ -48,4 +49,9 @@ export class CreateReviewDto {
   @MaxLength(5)
   @Matches(/^[a-z]{2}(-[A-Z]{2})?$/, { message: 'languageCode must be an ISO language code (e.g. en or en-US)' })
   languageCode?: string;
+
+  @ApiPropertyOptional({ description: 'Category-specific review extension data (workplace, school, medical, product)' })
+  @IsOptional()
+  @IsObject()
+  categoryData?: Record<string, any>;
 }

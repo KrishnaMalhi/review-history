@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,57 +10,69 @@ import { useCategories, useCities, useLocalities, useCreateEntity } from '@/hook
 import { createEntitySchema, type CreateEntityInput } from '@/lib/validators';
 import { useAuth } from '@/lib/auth-context';
 
+function useDebounce(value: string, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
 export default function AddEntityPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
   const { data: categories } = useCategories();
-  const { data: cities } = useCities();
   const createEntity = useCreateEntity();
   const [error, setError] = useState('');
   const [cityQuery, setCityQuery] = useState('');
+  const [resolvedCityId, setResolvedCityId] = useState('');
+  const debouncedCityQuery = useDebounce(cityQuery, 300);
+
+  // Fetch cities with debounced search — only PK cities returned from server
+  const { data: cities, isFetching: citiesLoading } = useCities(
+    debouncedCityQuery.length >= 1 ? debouncedCityQuery : undefined,
+  );
 
   const {
     register,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<CreateEntityInput>({
     resolver: zodResolver(createEntitySchema),
   });
 
-  const selectedCity = watch('cityId');
-  const { data: localities } = useLocalities(selectedCity || '');
-  const hasCountryMetadata = useMemo(
-    () => (cities || []).some((city) => !!city.country?.isoCode),
+  const { data: localities } = useLocalities(resolvedCityId);
+
+  const resolveCityId = useCallback(
+    (query: string) => {
+      const normalized = query.trim().toLowerCase();
+      if (!normalized || !cities?.length) return '';
+
+      const exact = cities.find((city) => city.name.trim().toLowerCase() === normalized);
+      if (exact) return exact.id;
+
+      const startsWith = cities.filter((city) =>
+        city.name.trim().toLowerCase().startsWith(normalized),
+      );
+      if (startsWith.length === 1) return startsWith[0].id;
+
+      return '';
+    },
     [cities],
   );
-  const pakistanCities = useMemo(
-    () =>
-      (cities || []).filter((city) =>
-        hasCountryMetadata ? city.country?.isoCode === 'PK' : true,
-      ),
-    [cities, hasCountryMetadata],
-  );
-  const resolveCityId = (query: string) => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return '';
 
-    const exact = pakistanCities.find((city) => city.name.trim().toLowerCase() === normalized);
-    if (exact) return exact.id;
-
-    const startsWith = pakistanCities.filter((city) =>
-      city.name.trim().toLowerCase().startsWith(normalized),
-    );
-    if (startsWith.length === 1) return startsWith[0].id;
-
-    return '';
-  };
-  const filteredPakistanCities = useMemo(() => {
-    const query = cityQuery.trim().toLowerCase();
-    if (!query) return pakistanCities;
-    return pakistanCities.filter((city) => city.name.toLowerCase().includes(query));
-  }, [pakistanCities, cityQuery]);
+  // Resolve cityId whenever cities data changes (after search results arrive)
+  useEffect(() => {
+    if (cityQuery && cities?.length) {
+      const resolved = resolveCityId(cityQuery);
+      if (resolved) {
+        setResolvedCityId(resolved);
+        setValue('cityId', resolved, { shouldValidate: true });
+      }
+    }
+  }, [cities, cityQuery, resolveCityId, setValue]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -143,32 +155,37 @@ export default function AddEntityPage() {
               />
 
               {/* City */}
-              {cities && (
-                <div>
-                  <Input
-                    label="City"
-                    placeholder="Type to filter cities..."
-                    value={cityQuery}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setCityQuery(next);
-                      setValue('cityId', resolveCityId(next), { shouldValidate: true });
-                    }}
-                    onBlur={(e) => {
-                      setValue('cityId', resolveCityId(e.target.value), { shouldValidate: true });
-                    }}
-                    list="pakistan-city-options"
-                    maxLength={100}
-                    error={errors.cityId?.message}
-                  />
-                  <datalist id="pakistan-city-options">
-                    {filteredPakistanCities.map((city) => (
-                      <option key={city.id} value={city.name} />
-                    ))}
-                  </datalist>
-                  <input type="hidden" {...register('cityId')} />
-                </div>
-              )}
+              <div>
+                <Input
+                  label="City"
+                  placeholder="Type city name to search..."
+                  value={cityQuery}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setCityQuery(next);
+                    const resolved = resolveCityId(next);
+                    setResolvedCityId(resolved);
+                    setValue('cityId', resolved, { shouldValidate: true });
+                  }}
+                  onBlur={(e) => {
+                    const resolved = resolveCityId(e.target.value);
+                    setResolvedCityId(resolved);
+                    setValue('cityId', resolved, { shouldValidate: true });
+                  }}
+                  list="pakistan-city-options"
+                  maxLength={100}
+                  error={errors.cityId?.message}
+                />
+                {citiesLoading && cityQuery.length >= 1 && (
+                  <p className="mt-1 text-xs text-gray-400">Searching cities...</p>
+                )}
+                <datalist id="pakistan-city-options">
+                  {(cities || []).map((city) => (
+                    <option key={city.id} value={city.name} />
+                  ))}
+                </datalist>
+                <input type="hidden" {...register('cityId')} />
+              </div>
 
               {/* Locality */}
               {localities && localities.length > 0 && (

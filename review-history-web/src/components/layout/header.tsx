@@ -91,6 +91,18 @@ export function Header() {
               Feed
             </Link>
             <Link
+              href="/discussions"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface hover:text-foreground"
+            >
+              Discussions
+            </Link>
+            <Link
+              href="/blogs"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface hover:text-foreground"
+            >
+              Blogs
+            </Link>
+            <Link
               href="/entities/add"
               className="rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface hover:text-foreground"
             >
@@ -249,6 +261,20 @@ export function Header() {
             onClick={() => setMobileMenuOpen(false)}
           >
             Feed
+          </Link>
+          <Link
+            href="/discussions"
+            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/80"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Discussions
+          </Link>
+          <Link
+            href="/blogs"
+            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/80"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Blogs
           </Link>
           <Link
             href="/entities/add"

@@ -1,6 +1,8 @@
-import { IsString, IsOptional, MaxLength, Matches, IsUUID } from 'class-validator';
+import { IsString, IsOptional, MaxLength, Matches } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
+
+const UUID_LIKE_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'Ahmed Khan' })
@@ -18,7 +20,7 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_LIKE_REGEX, { message: 'cityId must be a valid ID format' })
   cityId?: string;
 
   @ApiPropertyOptional({ example: 'Lahore', description: 'City name alias (frontend compatibility)' })

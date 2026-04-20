@@ -9,6 +9,27 @@ import { Button, Input, Textarea, Card, CardContent, StarRating } from '@/compon
 import { useEntity, useCreateReview, useCategoryTags } from '@/hooks/use-api';
 import { createReviewSchema, type CreateReviewInput } from '@/lib/validators';
 import { useAuth } from '@/lib/auth-context';
+import { ArrowLeft, CheckCircle2, AlertCircle, Lightbulb } from 'lucide-react';
+import {
+  WorkplaceReviewFields,
+  SchoolReviewFields,
+  MedicalReviewFields,
+  ProductReviewFields,
+} from '@/components/review/category-fields';
+
+const EMPLOYER_KEYS = ['employer', 'company', 'workplace'];
+const SCHOOL_KEYS = ['school', 'college', 'university', 'academy'];
+const MEDICAL_KEYS = ['doctor', 'hospital', 'clinic', 'medical'];
+const PRODUCT_KEYS = ['product', 'food', 'restaurant'];
+
+function getCategoryGroup(categoryKey: string) {
+  const k = categoryKey.toLowerCase();
+  if (EMPLOYER_KEYS.some((e) => k.includes(e))) return 'employer';
+  if (SCHOOL_KEYS.some((e) => k.includes(e))) return 'school';
+  if (MEDICAL_KEYS.some((e) => k.includes(e))) return 'medical';
+  if (PRODUCT_KEYS.some((e) => k.includes(e))) return 'product';
+  return null;
+}
 
 export default function WriteReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -20,21 +41,45 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
 
   const [error, setError] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [categoryData, setCategoryData] = useState<Record<string, number>>({});
+  const categoryGroup = entity ? getCategoryGroup(entity.categoryKey) : null;
 
   const {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm<CreateReviewInput>({
     resolver: zodResolver(createReviewSchema),
     defaultValues: { rating: 0 },
   });
 
+  const rating = watch('rating');
+  const body = watch('body');
+
   if (!isAuthenticated) {
     router.replace(`/auth/login`);
     return null;
   }
+
+  const getRatingLabel = (r: number) => {
+    if (r === 0) return '';
+    if (r <= 2) return '👎 Poor';
+    if (r === 3) return '😐 Average';
+    if (r === 4) return '👍 Good';
+    return '⭐ Excellent';
+  };
+
+  // Progress calculation
+  const steps = [
+    { num: 1, label: 'Rating', done: rating > 0 },
+    { num: 2, label: 'Title & Body', done: body && body.length >= 10 },
+    { num: 3, label: 'Tags (optional)', done: true },
+    { num: 4, label: 'Review', done: true },
+  ];
+
+  const completedSteps = steps.filter((s) => s.done).length;
 
   const onSubmit = async (data: CreateReviewInput) => {
     setError('');
@@ -44,6 +89,7 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
         title: data.title,
         body: data.body,
         tagKeys: selectedTags,
+        ...(Object.keys(categoryData).length > 0 && { categoryData }),
       });
       router.push(`/entities/${id}`);
     } catch (err: any) {
@@ -54,61 +100,144 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
   return (
     <PublicLayout>
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">Write a Review</h1>
-        {entity && (
-          <p className="mb-6 text-gray-500">
-            Reviewing: <span className="font-medium text-gray-700">{entity.name}</span>
-          </p>
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                onClick={() => router.back()}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900">Write a Review</h1>
+            </div>
+            {entity && (
+              <p className="text-gray-500 ml-7">
+                Reviewing: <span className="font-medium text-gray-700">{entity.name}</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-6 rounded-lg bg-white p-4 ring-1 ring-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-900">Progress</span>
+            <span className="text-xs text-gray-500">{completedSteps}/4 sections complete</span>
+          </div>
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div 
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${(completedSteps / 4) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+            <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          </div>
         )}
 
         <Card>
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              {/* Rating */}
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Your Rating
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Step 1: Rating */}
+              <div className="space-y-3 pb-6 border-b border-gray-200">
+                <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  Step 1: Your Rating
+                  {rating > 0 && <CheckCircle2 className="h-4 w-4 text-green-500" />}
                 </label>
                 <Controller
                   name="rating"
                   control={control}
                   render={({ field }) => (
-                    <StarRating
-                      value={field.value}
-                      onChange={field.onChange}
-                      size="lg"
-                    />
+                    <div className="space-y-3">
+                      <StarRating
+                        value={field.value}
+                        onChange={field.onChange}
+                        size="lg"
+                      />
+                      {rating > 0 && (
+                        <p className="text-sm text-gray-600">Your rating: <span className="font-semibold text-gray-900">{getRatingLabel(rating)}</span></p>
+                      )}
+                    </div>
                   )}
                 />
                 {errors.rating && (
-                  <p className="mt-1 text-sm text-red-600">{errors.rating.message}</p>
+                  <p className="text-sm text-red-600">{errors.rating.message}</p>
                 )}
               </div>
 
-              {/* Title */}
-              <Input
-                label="Review Title (optional)"
-                placeholder="Summarize your experience"
-                maxLength={200}
-                {...register('title')}
-                error={errors.title?.message}
-              />
+              {/* Step 2: Title & Body */}
+              <div className="space-y-4 pb-6 border-b border-gray-200">
+                <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  Step 2: Title & Details
+                  {body && body.length >= 10 && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                </label>
 
-              {/* Body */}
-              <Textarea
-                label="Your Review"
-                placeholder="Share details of your experience (minimum 10 characters)..."
-                maxLength={5000}
-                {...register('body')}
-                error={errors.body?.message}
-                rows={6}
-              />
+                <Input
+                  label="Review Title (optional)"
+                  placeholder="Summarize your main point"
+                  maxLength={200}
+                  {...register('title')}
+                  error={errors.title?.message}
+                />
 
-              {/* Tags */}
-              {availableTags && availableTags.length > 0 && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Warning Tags (optional)
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium text-gray-900">Your Review</label>
+                    <span className="text-xs text-gray-500">{(body || '').length}/5000</span>
+                  </div>
+                  <Textarea
+                    placeholder="Share specific details... (minimum 10 characters)"
+                    maxLength={5000}
+                    {...register('body')}
+                    error={errors.body?.message}
+                    rows={6}
+                  />
+                </div>
+
+                {/* Tips */}
+                {body && body.length < 50 && (
+                  <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 border border-blue-200">
+                    <Lightbulb className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-700">
+                      <strong>Tip:</strong> More details help other readers. Include examples or comparisons.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 3: Category-specific fields */}
+              {categoryGroup && (
+                <div className="space-y-4 pb-6 border-b border-gray-200">
+                  <label className="text-sm font-semibold text-gray-900">Step 3: Additional Details</label>
+                  {categoryGroup === 'employer' && (
+                    <WorkplaceReviewFields values={categoryData} onChange={(k, v) => setCategoryData((p) => ({ ...p, [k]: v }))} />
+                  )}
+                  {categoryGroup === 'school' && (
+                    <SchoolReviewFields values={categoryData} onChange={(k, v) => setCategoryData((p) => ({ ...p, [k]: v }))} />
+                  )}
+                  {categoryGroup === 'medical' && (
+                    <MedicalReviewFields values={categoryData} onChange={(k, v) => setCategoryData((p) => ({ ...p, [k]: v }))} />
+                  )}
+                  {categoryGroup === 'product' && (
+                    <ProductReviewFields values={categoryData} onChange={(k, v) => setCategoryData((p) => ({ ...p, [k]: v }))} />
+                  )}
+                </div>
+              )}
+
+              {/* Step 4: Tags */}
+              {availableTags && availableTags.length > 0 && (
+                <div className="pb-6 border-b border-gray-200">
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Step 4: Warning Tags (optional)
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {availableTags.map((tag) => (
@@ -141,12 +270,13 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
                 <span className="text-sm text-gray-700">Post anonymously</span>
               </label>
 
-              {error && (
-                <p className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</p>
-              )}
-
-              <div className="flex gap-3">
-                <Button type="submit" loading={createReview.isPending} className="flex-1">
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  type="submit" 
+                  loading={createReview.isPending} 
+                  className="flex-1"
+                  disabled={!rating || !body || body.length < 10}
+                >
                   Submit Review
                 </Button>
                 <Button

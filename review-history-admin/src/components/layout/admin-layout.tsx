@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Shield, Landmark, ScrollText, FolderOpen, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, Shield, Landmark, ScrollText, FolderOpen, MessageSquare, Megaphone, FileText, Building2, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AdminHeader } from '@/components/layout/admin-header';
 import { ProtectedRoute } from '@/components/shared/protected-route';
@@ -10,10 +10,14 @@ import { ProtectedRoute } from '@/components/shared/protected-route';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/categories', label: 'Categories', icon: FolderOpen },
+  { href: '/entity-profiles', label: 'Entity Profiles', icon: Building2 },
   { href: '/moderation', label: 'Moderation', icon: Shield },
   { href: '/reviews', label: 'Reviews', icon: MessageSquare },
   { href: '/claims', label: 'Claims', icon: Landmark },
   { href: '/users', label: 'Users', icon: Users },
+  { href: '/campaigns', label: 'Campaigns', icon: Megaphone },
+  { href: '/blogs', label: 'Blogs', icon: BookOpen },
+  { href: '/response-templates', label: 'Templates', icon: FileText },
   { href: '/audit', label: 'Audit Log', icon: ScrollText },
 ];
 

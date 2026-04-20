@@ -43,7 +43,7 @@ export class ReviewsController {
   @Get('reviews/feed')
   @ApiOperation({ summary: 'Public feed of recent reviews across all entities' })
   getFeed(@Query() query: ReviewFeedQueryDto) {
-    return this.reviewsService.getFeed(query.page, query.pageSize, query.category);
+    return this.reviewsService.getFeed(query.page, query.pageSize, query.category, query.sort, query.rating);
   }
 
   @Patch('reviews/:id')

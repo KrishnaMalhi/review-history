@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Landmark, CheckCircle, XCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Landmark, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { Card, Badge, Skeleton } from '@/components/ui';
 import { useAdminClaims, useAdminResolveClaim } from '@/hooks/use-api';
@@ -91,6 +92,12 @@ export default function AdminClaimsPage() {
                         </button>
                       </div>
                     )}
+                    <Link
+                      href={`/claims/${claim.id}`}
+                      className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-light transition-colors"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> View
+                    </Link>
                   </div>
                 </Card>
               ))}

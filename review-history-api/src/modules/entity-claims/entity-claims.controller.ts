@@ -47,6 +47,15 @@ export class EntityClaimsController {
     return this.claimsService.listPendingClaims(query.page, query.pageSize);
   }
 
+  @Get('admin/claims/:claimId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get claim details (admin)' })
+  getClaimDetail(@Param('claimId') claimId: string) {
+    return this.claimsService.getClaimDetail(claimId);
+  }
+
   @Get('me/claims')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

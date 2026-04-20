@@ -1,6 +1,8 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, MaxLength, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, MaxLength, Matches } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
+
+const UUID_LIKE_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export class CreateEntityDto {
   @ApiProperty({ example: 'landlord' })
@@ -17,13 +19,13 @@ export class CreateEntityDto {
   displayName!: string;
 
   @ApiProperty({ example: '00000000-0000-0000-0000-000000000002' })
-  @IsUUID()
   @IsNotEmpty()
+  @Matches(UUID_LIKE_REGEX, { message: 'cityId must be a valid ID format' })
   cityId!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_LIKE_REGEX, { message: 'localityId must be a valid ID format' })
   localityId?: string;
 
   @ApiPropertyOptional({ example: '+923001234567' })

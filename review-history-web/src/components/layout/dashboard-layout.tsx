@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, Landmark, Bookmark, User, Bell } from 'lucide-react';
+import { FileText, Landmark, Bookmark, User, Bell, Award, Users, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
@@ -12,6 +12,9 @@ const navItems = [
   { href: '/dashboard/reviews', label: 'My Reviews', icon: FileText },
   { href: '/dashboard/claims', label: 'My Claims', icon: Landmark },
   { href: '/dashboard/saved', label: 'Saved Entities', icon: Bookmark },
+  { href: '/dashboard/badges', label: 'Badges', icon: Award },
+  { href: '/dashboard/follows', label: 'Following', icon: Users },
+  { href: '/dashboard/streaks', label: 'Streaks', icon: Flame },
   { href: '/dashboard/profile', label: 'Profile', icon: User },
   { href: '/dashboard/notification', label: 'Notifications', icon: Bell },
 ];

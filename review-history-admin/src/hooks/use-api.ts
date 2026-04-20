@@ -366,6 +366,74 @@ export function useDeleteCategory() {
   });
 }
 
+// Admin: Blogs
+export interface AdminBlog {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  coverImage: string | null;
+  isPublished: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  author?: { id: string; displayName: string | null };
+}
+
+export function useAdminBlogs(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminBlogs', params],
+    queryFn: async () => {
+      const payload = await apiGet<any>('/admin/blogs', params);
+      const paginated = toPaginated<any>(payload);
+      return {
+        ...paginated,
+        data: paginated.data as AdminBlog[],
+      } as PaginatedResponse<AdminBlog>;
+    },
+  });
+}
+
+export function useCreateBlog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      title: string;
+      slug?: string;
+      excerpt?: string;
+      content: string;
+      coverImage?: string;
+      isPublished?: boolean;
+    }) => apiPost<AdminBlog>('/admin/blogs', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogs'] }),
+  });
+}
+
+export function useUpdateBlog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: {
+      id: string;
+      title?: string;
+      slug?: string;
+      excerpt?: string;
+      content?: string;
+      coverImage?: string;
+      isPublished?: boolean;
+    }) => apiPatch<AdminBlog>(`/admin/blogs/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogs'] }),
+  });
+}
+
+export function useDeleteBlog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/admin/blogs/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogs'] }),
+  });
+}
+
 // Notifications
 export function useNotifications(params?: Record<string, unknown>, options?: { refetchInterval?: number | false }) {
   return useQuery({
@@ -379,5 +447,236 @@ export function useNotifications(params?: Record<string, unknown>, options?: { r
       } as PaginatedResponse<Notification> & { unreadCount: number };
     },
     ...options,
+  });
+}
+
+// ── Admin: Campaigns ──
+export interface AdminCampaign {
+  id: string;
+  title: string;
+  description: string | null;
+  categoryKey: string | null;
+  targetGoal: number;
+  status: 'draft' | 'active' | 'ended';
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  _count?: { participants: number };
+}
+
+export function useAdminCampaigns(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminCampaigns', params],
+    queryFn: () => apiGet<AdminCampaign[]>('/campaigns', params),
+  });
+}
+
+export function useCreateCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; description?: string; categoryKey?: string; targetGoal: number; startsAt: string; endsAt: string }) =>
+      apiPost<AdminCampaign>('/campaigns', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminCampaigns'] }),
+  });
+}
+
+export function useActivateCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiPatch(`/campaigns/${id}/activate`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminCampaigns'] }),
+  });
+}
+
+export function useCompleteCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiPatch(`/campaigns/${id}/complete`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminCampaigns'] }),
+  });
+}
+
+// ── Admin: Response Templates ──
+export interface ResponseTemplate {
+  id: string;
+  titleEn: string;
+  titleUr?: string | null;
+  bodyEn: string;
+  bodyUr?: string | null;
+  categoryKey: string | null;
+  sentiment: string;
+  sortOrder?: number;
+  isActive?: boolean;
+  createdAt: string;
+}
+
+export function useAdminResponseTemplates(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminResponseTemplates', params],
+    queryFn: () => apiGet<ResponseTemplate[]>('/response-templates', params),
+  });
+}
+
+export function useCreateResponseTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { titleEn: string; bodyEn: string; categoryKey?: string; sentiment: string; sortOrder?: number }) =>
+      apiPost<ResponseTemplate>('/response-templates', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminResponseTemplates'] }),
+  });
+}
+
+export function useUpdateResponseTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; titleEn?: string; titleUr?: string; bodyEn?: string; bodyUr?: string; sentiment?: string; categoryKey?: string; isActive?: boolean }) =>
+      apiPatch<ResponseTemplate>(`/response-templates/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminResponseTemplates'] }),
+  });
+}
+
+export function useDeleteResponseTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/response-templates/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminResponseTemplates'] }),
+  });
+}
+
+// ── Admin: Badges Recalculation ──
+export function useRecalculateUserBadges() {
+  return useMutation({
+    mutationFn: (userId: string) => apiPost(`/admin/badges/recalculate-user/${userId}`),
+  });
+}
+
+export function useRecalculateEntityBadges() {
+  return useMutation({
+    mutationFn: (entityId: string) => apiPost(`/admin/badges/recalculate-entity/${entityId}`),
+  });
+}
+
+// ── Admin: Claim Detail ──
+export interface ClaimDetail extends EntityClaim {
+  claimType: string;
+  submittedDocumentsJson: any;
+  adminNotes: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  requester: {
+    id: string;
+    displayName: string | null;
+    phoneE164: string;
+    role: string;
+    createdAt: string;
+  } | null;
+  entity: {
+    id: string;
+    displayName: string;
+    slug: string | null;
+    category: { key: string; nameEn: string } | null;
+  } | null;
+}
+
+export function useAdminClaimDetail(claimId: string) {
+  return useQuery({
+    queryKey: ['adminClaim', claimId],
+    queryFn: async () => {
+      const data = await apiGet<any>(`/admin/claims/${claimId}`);
+      return {
+        ...mapClaim(data),
+        claimType: data.claimType ?? 'owner',
+        submittedDocumentsJson: data.submittedDocumentsJson ?? null,
+        adminNotes: data.adminNotes ?? null,
+        approvedBy: data.approvedBy ?? null,
+        approvedAt: data.approvedAt ?? null,
+        requester: data.requester ?? null,
+        entity: data.entity ?? null,
+      } as ClaimDetail;
+    },
+    enabled: !!claimId,
+  });
+}
+
+// ── Admin: Entity Profiles ──
+export interface AdminEntityProfile {
+  id: string;
+  entityId: string;
+  entityName: string;
+  description: string | null;
+  isVerified?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any;
+}
+
+function mapEntityProfile(profile: any): AdminEntityProfile {
+  return {
+    ...profile,
+    entityName: profile.entityName ?? profile.entity?.displayName ?? 'Unknown',
+  };
+}
+
+export function useAdminEmployerProfiles(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminEmployerProfiles', params],
+    queryFn: async () => {
+      const payload = await apiGet<any>('/admin/employer-profiles', params);
+      const paginated = toPaginated<any>(payload);
+      return {
+        ...paginated,
+        data: paginated.data.map(mapEntityProfile),
+      } as PaginatedResponse<AdminEntityProfile>;
+    },
+  });
+}
+
+export function useAdminSchoolProfiles(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminSchoolProfiles', params],
+    queryFn: async () => {
+      const payload = await apiGet<any>('/category-extensions/admin/school-profiles', params);
+      const paginated = toPaginated<any>(payload);
+      return {
+        ...paginated,
+        data: paginated.data.map(mapEntityProfile),
+      } as PaginatedResponse<AdminEntityProfile>;
+    },
+  });
+}
+
+export function useAdminMedicalProfiles(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminMedicalProfiles', params],
+    queryFn: async () => {
+      const payload = await apiGet<any>('/category-extensions/admin/medical-profiles', params);
+      const paginated = toPaginated<any>(payload);
+      return {
+        ...paginated,
+        data: paginated.data.map(mapEntityProfile),
+      } as PaginatedResponse<AdminEntityProfile>;
+    },
+  });
+}
+
+export function useAdminProductProfiles(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminProductProfiles', params],
+    queryFn: async () => {
+      const payload = await apiGet<any>('/category-extensions/admin/product-profiles', params);
+      const paginated = toPaginated<any>(payload);
+      return {
+        ...paginated,
+        data: paginated.data.map(mapEntityProfile),
+      } as PaginatedResponse<AdminEntityProfile>;
+    },
+  });
+}
+
+export function useVerifyEmployer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (entityId: string) => apiPost(`/admin/entities/${entityId}/verify-employer`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminEmployerProfiles'] }),
   });
 }

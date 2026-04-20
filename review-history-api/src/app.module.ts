@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { RedisModule } from './infra/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -20,6 +22,25 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AuditModule } from './modules/audit/audit.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { HealthModule } from './modules/health/health.module';
+
+// Platform expansion modules
+import { EmployerProfilesModule } from './modules/employer-profiles/employer-profiles.module';
+import { ResponseMetricsModule } from './modules/response-metrics/response-metrics.module';
+import { BadgesModule } from './modules/badges/badges.module';
+import { ReviewInvitesModule } from './modules/review-invites/review-invites.module';
+import { FollowsModule } from './modules/follows/follows.module';
+import { IssueResolutionsModule } from './modules/issue-resolutions/issue-resolutions.module';
+import { CategoryExtensionsModule } from './modules/category-extensions/category-extensions.module';
+import { CommunityValidationsModule } from './modules/community-validations/community-validations.module';
+import { ReviewQualityModule } from './modules/review-quality/review-quality.module';
+import { ReviewStreaksModule } from './modules/review-streaks/review-streaks.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ResponseTemplatesModule } from './modules/response-templates/response-templates.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { BlogsModule } from './modules/blogs/blogs.module';
+import { DiscussionsModule } from './modules/discussions/discussions.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -63,11 +84,38 @@ import { HealthModule } from './modules/health/health.module';
     AuditModule,
     AdminModule,
     HealthModule,
+
+    // Platform expansion modules
+    EmployerProfilesModule,
+    ResponseMetricsModule,
+    BadgesModule,
+    ReviewInvitesModule,
+    FollowsModule,
+    IssueResolutionsModule,
+    CategoryExtensionsModule,
+    CommunityValidationsModule,
+    ReviewQualityModule,
+    ReviewStreaksModule,
+    CampaignsModule,
+    AnalyticsModule,
+    ResponseTemplatesModule,
+    OnboardingModule,
+    BlogsModule,
+    DiscussionsModule,
+    RealtimeModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

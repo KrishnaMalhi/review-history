@@ -1,8 +1,10 @@
-import { IsOptional, IsString, IsIn, IsInt, Min, Max, MaxLength, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsIn, IsInt, Min, Max, MaxLength, Matches } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
+
+const UUID_LIKE_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export class SearchEntitiesDto extends PaginationDto {
   @ApiPropertyOptional({ example: 'ahmed landlord' })
@@ -32,12 +34,12 @@ export class SearchEntitiesDto extends PaginationDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_LIKE_REGEX, { message: 'cityId must be a valid ID format' })
   cityId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @Matches(UUID_LIKE_REGEX, { message: 'localityId must be a valid ID format' })
   localityId?: string;
 
   @ApiPropertyOptional({

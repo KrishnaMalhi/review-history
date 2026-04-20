@@ -60,9 +60,16 @@ export class CategoriesService {
     }));
   }
 
-  async getCities() {
+  async getCities(countryIso: string = 'PK', search?: string) {
+    const where: any = {
+      isActive: true,
+      country: { isoCode: countryIso },
+    };
+    if (search && search.trim()) {
+      where.nameEn = { contains: search.trim(), mode: 'insensitive' };
+    }
     const rows = await this.prisma.city.findMany({
-      where: { isActive: true },
+      where,
       select: {
         id: true,
         nameEn: true,
@@ -70,9 +77,9 @@ export class CategoriesService {
         province: true,
         country: { select: { id: true, name: true, isoCode: true, phoneCode: true, currency: true } },
         state: { select: { id: true, name: true, isoCode: true } },
-        timezone: { select: { id: true, zoneName: true, gmtOffset: true, gmtOffsetName: true, abbreviation: true, tzName: true } },
       },
       orderBy: { nameEn: 'asc' },
+      take: 500,
     });
 
     return rows.map((row) => ({
@@ -83,7 +90,6 @@ export class CategoriesService {
       province: row.province,
       country: row.country,
       state: row.state,
-      timezone: row.timezone,
     }));
   }
 

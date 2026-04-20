@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Relaxed UUID regex — accepts any hex UUID format (including non-RFC4122 legacy IDs)
+const uuidLike = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 // Phone validation — Pakistan format
 export const pakistaniPhoneRegex = /^(\+92|0)?3[0-9]{9}$/;
 
@@ -55,8 +58,8 @@ export type CreateReviewInput = z.infer<typeof createReviewSchema>;
 export const createEntitySchema = z.object({
   categoryKey: z.string().min(1, 'Category is required').max(50),
   displayName: z.string().min(2, 'Name must be at least 2 characters').max(200),
-  cityId: z.string().uuid('Select a city'),
-  localityId: z.string().uuid().optional().or(z.literal('')),
+  cityId: z.string().regex(uuidLike, 'Select a city'),
+  localityId: z.string().regex(uuidLike).optional().or(z.literal('')),
   phone: z
     .string()
     .max(20)
@@ -73,8 +76,8 @@ export type CreateEntityInput = z.infer<typeof createEntitySchema>;
 export const searchSchema = z.object({
   q: z.string().max(200).optional(),
   categoryKey: z.string().max(50).optional(),
-  cityId: z.string().uuid().optional(),
-  localityId: z.string().uuid().optional(),
+  cityId: z.string().regex(uuidLike).optional(),
+  localityId: z.string().regex(uuidLike).optional(),
   sort: z.enum(['newest', 'rating', 'reviews', 'name']).optional(),
   page: z.number().optional(),
   pageSize: z.number().optional(),

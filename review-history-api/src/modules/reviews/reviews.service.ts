@@ -14,6 +14,11 @@ import { ListReviewsDto } from './dto/list-reviews.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
 import { Prisma } from '@prisma/client';
+import { CategoryExtensionsService } from '../category-extensions/category-extensions.service';
+import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
+import { ReviewQualityService } from '../review-quality/review-quality.service';
+import { BadgesService } from '../badges/badges.service';
+import { ResponseMetricsService } from '../response-metrics/response-metrics.service';
 
 @Injectable()
 export class ReviewsService {
@@ -22,12 +27,18 @@ export class ReviewsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly categoryExtensions: CategoryExtensionsService,
+    private readonly reviewStreaks: ReviewStreaksService,
+    private readonly reviewQuality: ReviewQualityService,
+    private readonly badges: BadgesService,
+    private readonly responseMetrics: ResponseMetricsService,
   ) {}
 
   async create(entityId: string, dto: CreateReviewDto, userId: string) {
     // Step 1: Validate entity exists
     const entity = await this.prisma.entity.findFirst({
       where: { id: entityId, deletedAt: null, status: { notIn: ['merged', 'archived', 'suspended'] } },
+      include: { category: { select: { key: true } } },
     });
     if (!entity) throw new NotFoundException('Entity not found');
 
@@ -96,10 +107,33 @@ export class ReviewsService {
       },
     });
 
-    // Step 8: Update entity aggregates
+    // Step 8: Store category-specific extension data
+    if (dto.categoryData && Object.keys(dto.categoryData).length > 0) {
+      const categoryKey = entity.category?.key;
+      if (categoryKey) {
+        try {
+          await this.categoryExtensions.createReviewData(
+            review.id,
+            categoryKey,
+            dto.categoryData,
+          );
+        } catch (err: any) {
+          this.logger.warn(
+            `Failed to store category data for review ${review.id}: ${err.message}`,
+          );
+        }
+      }
+    }
+
+    // Step 9: Update entity aggregates
     await this.updateEntityAggregates(entityId);
 
-    // Step 9: Create audit log
+    // Step 10: Post-creation hooks (non-blocking)
+    this.postReviewCreationHooks(review.id, userId, entityId).catch((err) =>
+      this.logger.warn(`Post-review hooks failed: ${err.message}`),
+    );
+
+    // Step 11: Create audit log
     await this.prisma.auditLog.create({
       data: {
         actorUserId: userId,
@@ -111,7 +145,7 @@ export class ReviewsService {
       },
     });
 
-    // Step 10: Create moderation case if flagged
+    // Step 12: Create moderation case if flagged
     if (riskState !== 'clean') {
       await this.prisma.moderationCase.create({
         data: {
@@ -429,11 +463,25 @@ export class ReviewsService {
     return { reviewId: updated.id, status: updated.status };
   }
 
-  async getFeed(page: number = 1, pageSize: number = 20, category?: string) {
+  async getFeed(
+    page: number = 1,
+    pageSize: number = 20,
+    category?: string,
+    sort: 'recent' | 'helpful' | 'trending' = 'recent',
+    rating?: number,
+  ) {
     const skip = (page - 1) * pageSize;
+    const orderBy: Prisma.ReviewOrderByWithRelationInput[] =
+      sort === 'helpful'
+        ? [{ helpfulCount: 'desc' }, { publishedAt: 'desc' }]
+        : sort === 'trending'
+          ? [{ helpfulCount: 'desc' }, { publishedAt: 'desc' }]
+          : [{ publishedAt: 'desc' }];
+
     const where: Prisma.ReviewWhereInput = {
       deletedAt: null,
       status: 'published',
+      ...(rating ? { overallRating: { gte: rating } } : {}),
       entity: {
         deletedAt: null,
         status: { notIn: ['merged', 'archived', 'suspended'] },
@@ -444,7 +492,7 @@ export class ReviewsService {
     const [reviews, total] = await Promise.all([
       this.prisma.review.findMany({
         where,
-        orderBy: { publishedAt: 'desc' },
+        orderBy,
         skip,
         take: pageSize,
         include: {
@@ -483,6 +531,7 @@ export class ReviewsService {
       status: r.status,
       helpfulCount: r.helpfulCount,
       notHelpfulCount: r.notHelpfulCount,
+      unhelpfulCount: r.notHelpfulCount,
       fakeVoteCount: r.fakeVoteCount,
       publishedAt: r.publishedAt,
       createdAt: r.createdAt,
@@ -561,5 +610,23 @@ export class ReviewsService {
         lastReviewedAt: new Date(),
       },
     });
+  }
+
+  private async postReviewCreationHooks(
+    reviewId: string,
+    userId: string,
+    entityId: string,
+  ) {
+    // Track review streak
+    await this.reviewStreaks.recordReviewActivity(userId);
+
+    // Calculate review quality score (async, best-effort)
+    await this.reviewQuality.calculateScore(reviewId);
+
+    // Re-evaluate user badges
+    await this.badges.evaluateUserBadges(userId);
+
+    // Recalculate entity response metrics
+    await this.responseMetrics.recalculate(entityId);
   }
 }
