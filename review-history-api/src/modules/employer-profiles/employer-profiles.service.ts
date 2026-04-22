@@ -11,6 +11,8 @@ import { UpdateEmployerProfileDto } from './dto/update-employer-profile.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
 
+const EMPLOYER_CATEGORY_KEYS = ['employer', 'workplace', 'workspace', 'company'];
+
 @Injectable()
 export class EmployerProfilesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -127,6 +129,26 @@ export class EmployerProfilesService {
   }
 
   async listAll(page: number = 1, pageSize: number = 20) {
+    // Backfill: ensure claimed employer-like entities have an employer profile row.
+    // This keeps admin "Entity Profiles > Employers" in sync with claim approvals.
+    const claimedEmployerEntitiesWithoutProfile = await this.prisma.entity.findMany({
+      where: {
+        deletedAt: null,
+        isClaimed: true,
+        category: { key: { in: EMPLOYER_CATEGORY_KEYS } },
+        employerProfile: { is: null },
+      },
+      select: { id: true },
+      take: 500,
+    });
+
+    if (claimedEmployerEntitiesWithoutProfile.length > 0) {
+      await this.prisma.employerProfile.createMany({
+        data: claimedEmployerEntitiesWithoutProfile.map((entity) => ({ entityId: entity.id })),
+        skipDuplicates: true,
+      });
+    }
+
     const skip = (page - 1) * pageSize;
     const [profiles, total] = await Promise.all([
       this.prisma.employerProfile.findMany({

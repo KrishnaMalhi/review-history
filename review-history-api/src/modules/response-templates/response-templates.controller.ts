@@ -14,47 +14,48 @@ import { ResponseTemplatesService } from './response-templates.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { IsString, IsOptional, MaxLength, IsBoolean, IsInt, Min } from 'class-validator';
+import { FIELD_LIMITS } from '../../common/constants/field-limits';
 
 class CreateTemplateDto {
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_TITLE)
   titleEn!: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(400)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_TITLE_UR)
   titleUr?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_BODY)
   bodyEn!: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_BODY)
   bodyUr?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(FIELD_LIMITS.SENTIMENT)
   sentiment!: string;
 
   // Backward compatibility for stale admin bundle keys.
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_TITLE)
   name?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_BODY)
   body?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(FIELD_LIMITS.SENTIMENT)
   tone?: string;
 
   @IsOptional()
@@ -70,22 +71,22 @@ class CreateTemplateDto {
 class UpdateTemplateDto {
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_TITLE)
   titleEn?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(400)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_TITLE_UR)
   titleUr?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_BODY)
   bodyEn?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(FIELD_LIMITS.TEMPLATE_BODY)
   bodyUr?: string;
 
   @IsOptional()
@@ -94,7 +95,7 @@ class UpdateTemplateDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(FIELD_LIMITS.SENTIMENT)
   sentiment?: string;
 
   @IsOptional()
@@ -133,6 +134,12 @@ export class ResponseTemplatesController {
     @Query('sentiment') sentiment?: string,
   ) {
     return this.service.list(categoryKey, sentiment);
+  }
+
+  @Roles('admin')
+  @Get(':id')
+  async getById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.getById(id);
   }
 
   @Roles('admin')

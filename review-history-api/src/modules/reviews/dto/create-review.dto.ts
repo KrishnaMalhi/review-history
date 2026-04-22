@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsArray, MaxLength, Matches, ValidateNested, IsObject } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsArray, MaxLength, Matches, ValidateNested, IsObject, IsUrl } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
@@ -46,7 +46,7 @@ export class CreateReviewDto {
   @ApiPropertyOptional({ example: 'en' })
   @IsOptional()
   @IsString()
-  @MaxLength(5)
+  @MaxLength(FIELD_LIMITS.LANGUAGE_CODE)
   @Matches(/^[a-z]{2}(-[A-Z]{2})?$/, { message: 'languageCode must be an ISO language code (e.g. en or en-US)' })
   languageCode?: string;
 
@@ -54,4 +54,13 @@ export class CreateReviewDto {
   @IsOptional()
   @IsObject()
   categoryData?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: 'URLs of supporting evidence files (uploaded via POST /upload). Max 5 items.',
+    example: ['http://localhost:5000/uploads/abc.jpg'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUrl({}, { each: true })
+  evidenceUrls?: string[];
 }

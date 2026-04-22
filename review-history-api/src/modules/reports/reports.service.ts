@@ -2,12 +2,18 @@ import { Injectable, NotFoundException, ConflictException, Logger } from '@nestj
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
+import { MailerService } from '../../common/mailer/mailer.service';
+
+const LEGAL_REPORT_TYPES = new Set(['threatening_content', 'harassment', 'personal_information']);
 
 @Injectable()
 export class ReportsService {
   private readonly logger = new Logger(ReportsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailer: MailerService,
+  ) {}
 
   async create(reviewId: string, dto: CreateReportDto, userId: string) {
     const review = await this.prisma.review.findFirst({
@@ -48,7 +54,28 @@ export class ReportsService {
           },
         });
         this.logger.log(`Moderation case created for review ${reviewId} — ${reportCount} reports`);
+        // Notify legal team when moderation case is auto-created
+        await this.mailer.sendLegalAlert({
+          subject: `Auto-moderation case opened — ${reportCount} reports`,
+          reviewId,
+          reportType: dto.reportType,
+          description: dto.description,
+          reporterUserId: userId,
+          reviewBody: review.body,
+        });
       }
+    }
+
+    // Immediate legal alert for severe report types (even before threshold)
+    if (LEGAL_REPORT_TYPES.has(dto.reportType)) {
+      await this.mailer.sendLegalAlert({
+        subject: `High-severity report: ${dto.reportType}`,
+        reviewId,
+        reportType: dto.reportType,
+        description: dto.description,
+        reporterUserId: userId,
+        reviewBody: review.body,
+      });
     }
 
     return { reportId: report.id, message: 'Report submitted successfully' };

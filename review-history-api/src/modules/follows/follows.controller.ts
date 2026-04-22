@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { FollowsService } from './follows.service';
 import { CreateFollowDto } from './dto/create-follow.dto';
@@ -23,7 +23,7 @@ export class FollowsController {
   @Delete('follows/:targetType/:targetId')
   async remove(
     @Param('targetType') targetType: string,
-    @Param('targetId', ParseUUIDPipe) targetId: string,
+    @Param('targetId') targetId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.remove(targetType, targetId, user.sub);
@@ -38,7 +38,7 @@ export class FollowsController {
 
   @Public()
   @Get('entities/:entityId/followers/count')
-  async getFollowerCount(@Param('entityId', ParseUUIDPipe) entityId: string) {
+  async getFollowerCount(@Param('entityId') entityId: string) {
     return this.service.getFollowerCount(entityId);
   }
 }

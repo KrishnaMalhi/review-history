@@ -1,9 +1,32 @@
 'use client';
 
 import { CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
+import type { AxiosError } from 'axios';
 import { useCommunityValidations, useValidateReview } from '@/hooks/use-api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/shared/toast';
+
+type ApiErrorPayload = {
+  error?: {
+    message?: string;
+  };
+};
+
+function resolveValidationError(error: unknown): string {
+  const axiosError = error as AxiosError<ApiErrorPayload>;
+  const status = axiosError?.response?.status;
+  const message = axiosError?.response?.data?.error?.message;
+
+  if (status === 409) {
+    return message || 'You already validated this review.';
+  }
+
+  if (status === 400 && message?.toLowerCase().includes('own review')) {
+    return 'You cannot validate your own review.';
+  }
+
+  return message || 'Could not submit validation.';
+}
 
 export function CommunityValidation({ reviewId }: { reviewId: string }) {
   const { isAuthenticated } = useAuth();
@@ -19,7 +42,7 @@ export function CommunityValidation({ reviewId }: { reviewId: string }) {
       { reviewId, validationType },
       {
         onSuccess: () => toast.success('Validation recorded'),
-        onError: () => toast.error('Could not submit validation'),
+        onError: (error) => toast.error(resolveValidationError(error)),
       },
     );
   };
@@ -30,6 +53,7 @@ export function CommunityValidation({ reviewId }: { reviewId: string }) {
       <button
         onClick={() => handleVote('confirmed')}
         disabled={validateMut.isPending || !isAuthenticated}
+        title="Confirmed — I had the same experience, this review is still accurate"
         className="flex items-center gap-1 rounded-full px-2 py-0.5 text-green-700 hover:bg-green-50 disabled:opacity-50"
       >
         <CheckCircle className="h-3 w-3" />
@@ -38,6 +62,7 @@ export function CommunityValidation({ reviewId }: { reviewId: string }) {
       <button
         onClick={() => handleVote('outdated')}
         disabled={validateMut.isPending || !isAuthenticated}
+        title="Outdated — This review no longer reflects the current situation"
         className="flex items-center gap-1 rounded-full px-2 py-0.5 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
       >
         <AlertTriangle className="h-3 w-3" />
@@ -46,6 +71,7 @@ export function CommunityValidation({ reviewId }: { reviewId: string }) {
       <button
         onClick={() => handleVote('resolved')}
         disabled={validateMut.isPending || !isAuthenticated}
+        title="Resolved — The issue mentioned in this review has been resolved"
         className="flex items-center gap-1 rounded-full px-2 py-0.5 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
       >
         <RotateCcw className="h-3 w-3" />

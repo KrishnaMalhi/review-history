@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
 
 export class RegisterUserDto {
@@ -28,4 +28,12 @@ export class RegisterUserDto {
   @IsString()
   @MaxLength(FIELD_LIMITS.DISPLAY_NAME)
   displayName?: string;
+
+  @ApiProperty({ example: true })
+  @IsBoolean()
+  acceptTerms!: boolean;
+
+  @ApiProperty({ example: true })
+  @IsBoolean()
+  acceptPrivacy!: boolean;
 }

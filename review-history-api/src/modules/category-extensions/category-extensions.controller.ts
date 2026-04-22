@@ -6,7 +6,6 @@ import {
   Param,
   Body,
   Query,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CategoryExtensionsService } from './category-extensions.service';
 import { Public } from '../../common/decorators/public.decorator';
@@ -23,14 +22,14 @@ export class CategoryExtensionsController {
 
   @Public()
   @Get('entities/:entityId/profile')
-  async getProfile(@Param('entityId', ParseUUIDPipe) entityId: string) {
+  async getProfile(@Param('entityId') entityId: string) {
     return this.service.getProfile(entityId);
   }
 
   @Roles('claimed_owner')
   @Post('entities/:entityId/school-profile')
   async createSchoolProfile(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: CreateSchoolProfileDto,
     @CurrentUser() user: any,
   ) {
@@ -40,7 +39,7 @@ export class CategoryExtensionsController {
   @Roles('claimed_owner')
   @Patch('entities/:entityId/school-profile')
   async updateSchoolProfile(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: Partial<CreateSchoolProfileDto>,
     @CurrentUser() user: any,
   ) {
@@ -50,7 +49,7 @@ export class CategoryExtensionsController {
   @Roles('claimed_owner')
   @Post('entities/:entityId/medical-profile')
   async createMedicalProfile(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: CreateMedicalProfileDto,
     @CurrentUser() user: any,
   ) {
@@ -60,7 +59,7 @@ export class CategoryExtensionsController {
   @Roles('claimed_owner')
   @Patch('entities/:entityId/medical-profile')
   async updateMedicalProfile(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: Partial<CreateMedicalProfileDto>,
     @CurrentUser() user: any,
   ) {
@@ -70,7 +69,7 @@ export class CategoryExtensionsController {
   @Roles('claimed_owner')
   @Post('entities/:entityId/product-profile')
   async createProductProfile(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: CreateProductProfileDto,
     @CurrentUser() user: any,
   ) {
@@ -80,7 +79,7 @@ export class CategoryExtensionsController {
   @Roles('claimed_owner')
   @Patch('entities/:entityId/product-profile')
   async updateProductProfile(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: Partial<CreateProductProfileDto>,
     @CurrentUser() user: any,
   ) {
@@ -92,7 +91,7 @@ export class CategoryExtensionsController {
   @Public()
   @Get('reviews/:reviewId/extension-data/:categoryKey')
   async getReviewData(
-    @Param('reviewId', ParseUUIDPipe) reviewId: string,
+    @Param('reviewId') reviewId: string,
     @Param('categoryKey') categoryKey: string,
   ) {
     return this.service.getReviewData(reviewId, categoryKey);

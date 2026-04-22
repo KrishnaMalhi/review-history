@@ -74,7 +74,7 @@ export class CreateMedicalProfileDto {
   @IsOptional() @IsInt() @Min(0) @Max(70)
   experienceYears?: number;
 
-  @IsOptional() @IsString() @MaxLength(200)
+  @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.HOSPITAL_AFFILIATION)
   hospitalAffiliation?: string;
 
   @IsOptional() @IsInt() @Min(0)
@@ -101,7 +101,7 @@ export class CreateProductProfileDto {
   @IsOptional() @IsUrl({ protocols: ['https'], require_protocol: true }) @MaxLength(FIELD_LIMITS.URL)
   imageUrl?: string;
 
-  @IsOptional() @IsString() @MaxLength(100)
+  @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.PRODUCT_CATEGORY)
   productCategory?: string;
 
   @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.BARCODE)

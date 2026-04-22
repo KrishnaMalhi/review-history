@@ -5,6 +5,7 @@ import {
   BadRequestException,
   GoneException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
@@ -13,8 +14,14 @@ import * as crypto from 'crypto';
 @Injectable()
 export class ReviewInvitesService {
   private static readonly MAX_ACTIVE_INVITES_PER_ENTITY = 20;
+  private readonly siteUrl: string;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {
+    this.siteUrl = this.config.get<string>('SITE_URL', 'https://reviewhistory.pk');
+  }
 
   async create(entityId: string, dto: CreateInviteDto, userId: string) {
     // Verify entity exists
@@ -79,7 +86,7 @@ export class ReviewInvitesService {
     return {
       id: invite.id,
       token: invite.token,
-      shareUrl: `https://reviewhistory.pk/r/${invite.token}`,
+      shareUrl: `${this.siteUrl}/r/${invite.token}`,
       label: invite.label,
       maxUses: invite.maxUses,
       expiresAt: invite.expiresAt,
@@ -102,7 +109,7 @@ export class ReviewInvitesService {
     return invites.map((inv) => ({
       id: inv.id,
       token: inv.token,
-      shareUrl: `https://reviewhistory.pk/r/${inv.token}`,
+      shareUrl: `${this.siteUrl}/r/${inv.token}`,
       label: inv.label,
       status: inv.status,
       maxUses: inv.maxUses,

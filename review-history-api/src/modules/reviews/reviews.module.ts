@@ -6,6 +6,7 @@ import { ReviewStreaksModule } from '../review-streaks/review-streaks.module';
 import { ReviewQualityModule } from '../review-quality/review-quality.module';
 import { BadgesModule } from '../badges/badges.module';
 import { ResponseMetricsModule } from '../response-metrics/response-metrics.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ResponseMetricsModule } from '../response-metrics/response-metrics.modu
     ReviewQualityModule,
     BadgesModule,
     ResponseMetricsModule,
+    RealtimeModule,
   ],
   controllers: [ReviewsController],
   providers: [ReviewsService],

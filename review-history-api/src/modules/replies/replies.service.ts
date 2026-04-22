@@ -8,34 +8,34 @@ import { ReplyAuthorRole } from '@prisma/client';
 export class RepliesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(reviewId: string, dto: CreateReplyDto, userId: string, userRole: string) {
+  async create(reviewId: string, dto: CreateReplyDto, userId: string) {
     const review = await this.prisma.review.findFirst({
       where: { id: reviewId, deletedAt: null, status: 'published' },
       include: { entity: { select: { id: true } } },
     });
     if (!review) throw new NotFoundException('Review not found');
 
-    // Determine authorRole — only claimed owners, admins, or moderators can reply
-    let authorRole: ReplyAuthorRole;
-    if (['admin', 'super_admin'].includes(userRole)) {
-      authorRole = 'admin';
-    } else if (userRole === 'moderator') {
-      authorRole = 'moderator';
-    } else {
-      // Check if user is claimed owner of this entity
-      const claim = await this.prisma.entityClaim.findFirst({
-        where: { entityId: review.entityId, requesterUserId: userId, status: 'approved' },
-      });
-      if (!claim) throw new ForbiddenException('Only entity owners, admins, or moderators can reply');
-      authorRole = 'claimed_owner';
+    // Only approved claim owner of this exact entity can reply.
+    const claim = await this.prisma.entityClaim.findFirst({
+      where: { entityId: review.entityId, requesterUserId: userId, status: 'approved' },
+    });
+    if (!claim) {
+      throw new ForbiddenException('Only approved claim owner can reply to this review');
     }
+
+    const body = sanitizeInput(dto.body).trim();
+    if (body.length < 2 || body.length > 2000) {
+      throw new BadRequestException('Reply must be between 2 and 2000 characters');
+    }
+
+    const authorRole: ReplyAuthorRole = 'claimed_owner';
 
     const reply = await this.prisma.reviewReply.create({
       data: {
         reviewId,
         authorUserId: userId,
         authorRole,
-        body: sanitizeInput(dto.body),
+        body,
       },
     });
 

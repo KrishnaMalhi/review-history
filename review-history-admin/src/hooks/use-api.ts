@@ -374,8 +374,20 @@ export interface AdminBlog {
   excerpt: string | null;
   content: string;
   coverImage: string | null;
+  featuredImage?: string | null;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   isPublished: boolean;
   publishedAt: string | null;
+  readTime?: number | null;
+  views?: number;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  keywords?: string[];
+  ogImageUrl?: string | null;
+  canonicalUrl?: string | null;
+  categoryId?: string | null;
+  category?: { id: string; name: string; slug: string } | null;
+  tags?: { id: string; name: string; slug: string }[];
   createdAt: string;
   updatedAt: string;
   author?: { id: string; displayName: string | null };
@@ -395,6 +407,14 @@ export function useAdminBlogs(params?: Record<string, unknown>) {
   });
 }
 
+export function useAdminBlog(id: string) {
+  return useQuery({
+    queryKey: ['adminBlog', id],
+    queryFn: () => apiGet<AdminBlog>(`/admin/blogs/${id}`),
+    enabled: !!id,
+  });
+}
+
 export function useCreateBlog() {
   const qc = useQueryClient();
   return useMutation({
@@ -404,7 +424,17 @@ export function useCreateBlog() {
       excerpt?: string;
       content: string;
       coverImage?: string;
+      featuredImage?: string;
+      status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
       isPublished?: boolean;
+      publishedAt?: string;
+      seoTitle?: string;
+      seoDescription?: string;
+      keywords?: string[];
+      ogImageUrl?: string;
+      canonicalUrl?: string;
+      categoryId?: string;
+      tagIds?: string[];
     }) => apiPost<AdminBlog>('/admin/blogs', data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogs'] }),
   });
@@ -420,7 +450,17 @@ export function useUpdateBlog() {
       excerpt?: string;
       content?: string;
       coverImage?: string;
+      featuredImage?: string;
+      status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
       isPublished?: boolean;
+      publishedAt?: string;
+      seoTitle?: string;
+      seoDescription?: string;
+      keywords?: string[];
+      ogImageUrl?: string;
+      canonicalUrl?: string;
+      categoryId?: string;
+      tagIds?: string[];
     }) => apiPatch<AdminBlog>(`/admin/blogs/${id}`, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogs'] }),
   });
@@ -431,6 +471,86 @@ export function useDeleteBlog() {
   return useMutation({
     mutationFn: (id: string) => apiDelete(`/admin/blogs/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogs'] }),
+  });
+}
+
+export interface BlogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  _count?: { blogPosts: number };
+}
+
+export interface BlogTag {
+  id: string;
+  name: string;
+  slug: string;
+  _count?: { blogPosts: number };
+}
+
+export function useAdminBlogCategories() {
+  return useQuery({
+    queryKey: ['adminBlogCategories'],
+    queryFn: () => apiGet<BlogCategory[]>('/admin/blog-categories'),
+  });
+}
+
+export function useAdminBlogTags() {
+  return useQuery({
+    queryKey: ['adminBlogTags'],
+    queryFn: () => apiGet<BlogTag[]>('/admin/blog-tags'),
+  });
+}
+
+export function useCreateBlogCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; slug?: string; description?: string }) =>
+      apiPost<BlogCategory>('/admin/blog-categories', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogCategories'] }),
+  });
+}
+
+export function useUpdateBlogCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; name?: string; slug?: string; description?: string }) =>
+      apiPatch<BlogCategory>(`/admin/blog-categories/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogCategories'] }),
+  });
+}
+
+export function useDeleteBlogCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/admin/blog-categories/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogCategories'] }),
+  });
+}
+
+export function useCreateBlogTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; slug?: string }) => apiPost<BlogTag>('/admin/blog-tags', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogTags'] }),
+  });
+}
+
+export function useUpdateBlogTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; name?: string; slug?: string }) =>
+      apiPatch<BlogTag>(`/admin/blog-tags/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogTags'] }),
+  });
+}
+
+export function useDeleteBlogTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/admin/blog-tags/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['adminBlogTags'] }),
   });
 }
 
@@ -467,14 +587,28 @@ export interface AdminCampaign {
 export function useAdminCampaigns(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ['adminCampaigns', params],
-    queryFn: () => apiGet<AdminCampaign[]>('/campaigns', params),
+    queryFn: async () => {
+      const payload = await apiGet<any>('/campaigns', params);
+      if (Array.isArray(payload)) return payload as AdminCampaign[];
+      if (Array.isArray(payload?.items)) return payload.items as AdminCampaign[];
+      if (Array.isArray(payload?.data)) return payload.data as AdminCampaign[];
+      return [] as AdminCampaign[];
+    },
+  });
+}
+
+export function useAdminCampaign(id: string) {
+  return useQuery({
+    queryKey: ['adminCampaign', id],
+    queryFn: () => apiGet<AdminCampaign>(`/campaigns/${id}`),
+    enabled: !!id,
   });
 }
 
 export function useCreateCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { title: string; description?: string; categoryKey?: string; targetGoal: number; startsAt: string; endsAt: string }) =>
+    mutationFn: (data: { title: string; description?: string; categoryKey?: string; targetGoal: number; startDate: string; endDate: string }) =>
       apiPost<AdminCampaign>('/campaigns', data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['adminCampaigns'] }),
   });
@@ -508,12 +642,21 @@ export interface ResponseTemplate {
   sortOrder?: number;
   isActive?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export function useAdminResponseTemplates(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ['adminResponseTemplates', params],
     queryFn: () => apiGet<ResponseTemplate[]>('/response-templates', params),
+  });
+}
+
+export function useAdminResponseTemplate(id: string) {
+  return useQuery({
+    queryKey: ['adminResponseTemplate', id],
+    queryFn: () => apiGet<ResponseTemplate>(`/response-templates/${id}`),
+    enabled: !!id,
   });
 }
 
@@ -678,5 +821,32 @@ export function useVerifyEmployer() {
   return useMutation({
     mutationFn: (entityId: string) => apiPost(`/admin/entities/${entityId}/verify-employer`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['adminEmployerProfiles'] }),
+  });
+}
+
+// ── Admin: Reports ──
+export interface AdminReport {
+  id: string;
+  reviewId: string;
+  reportType: string;
+  reasonText: string | null;
+  status: string;
+  createdAt: string;
+  review: {
+    id: string;
+    body: string;
+    rating: number;
+    entity: { id: string; name: string } | null;
+  } | null;
+  reporter: { id: string; displayName: string | null; phoneE164: string } | null;
+}
+
+export function useAdminReports(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['adminReports', params],
+    queryFn: async () => {
+      const payload = await apiGet<any>('/admin/reports', params);
+      return toPaginated<AdminReport>(payload);
+    },
   });
 }

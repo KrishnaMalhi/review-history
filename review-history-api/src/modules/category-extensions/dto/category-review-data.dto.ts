@@ -25,7 +25,7 @@ export class WorkplaceReviewDataDto {
   @IsOptional() @IsInt() @Min(1) @Max(10)
   recommendScore?: number;
 
-  @IsOptional() @IsString() @MaxLength(30)
+  @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.EMPLOYMENT_STATUS)
   employmentStatus?: string;
 
   @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.JOB_TITLE)
@@ -58,7 +58,7 @@ export class SchoolReviewDataDto {
   @IsOptional() @IsInt() @Min(1) @Max(5)
   safety?: number;
 
-  @IsOptional() @IsString() @MaxLength(20)
+  @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.REVIEWER_TYPE)
   reviewerType?: string;
 
   @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.GRADE_CLASS)
@@ -97,7 +97,7 @@ export class MedicalReviewDataDto {
   @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.CONDITION_TREATED)
   conditionTreated?: string;
 
-  @IsOptional() @IsString() @MaxLength(30)
+  @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.VISIT_TYPE)
   visitType?: string;
 
   @IsOptional() @IsBoolean()
@@ -127,6 +127,6 @@ export class ProductReviewDataDto {
   @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.URL)
   imageUrl?: string;
 
-  @IsOptional() @IsString() @MaxLength(200)
+  @IsOptional() @IsString() @MaxLength(FIELD_LIMITS.PURCHASE_PLACE)
   purchasePlace?: string;
 }

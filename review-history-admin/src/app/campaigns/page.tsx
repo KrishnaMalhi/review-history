@@ -11,6 +11,8 @@ import {
   useCompleteCampaign,
 } from '@/hooks/use-api';
 import { useToast } from '@/components/shared/toast';
+import { FIELD_LIMITS } from '@shared/field-limits';
+import Link from 'next/link';
 
 interface CampaignForm {
   title: string;
@@ -44,8 +46,8 @@ export default function AdminCampaignsPage() {
         description: form.description || undefined,
         categoryKey: form.categoryKey || undefined,
         targetGoal: form.targetGoal,
-        startsAt: new Date(form.startsAt).toISOString(),
-        endsAt: new Date(form.endsAt).toISOString(),
+        startDate: new Date(form.startsAt).toISOString(),
+        endDate: new Date(form.endsAt).toISOString(),
       },
       {
         onSuccess: () => { toast.success('Campaign created'); setShowModal(false); setForm(emptyForm); },
@@ -91,6 +93,9 @@ export default function AdminCampaignsPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <Link href={`/campaigns/${c.id}`}>
+                    <Button size="sm" variant="outline">View</Button>
+                  </Link>
                   {c.status === 'draft' && (
                     <Button
                       size="sm"
@@ -127,9 +132,24 @@ export default function AdminCampaignsPage() {
       {/* Create Campaign Modal */}
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Create Campaign">
         <div className="space-y-4">
-          <Input label="Title" value={form.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, title: e.target.value })} />
-          <Input label="Description" value={form.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, description: e.target.value })} />
-          <Input label="Category Key (optional)" value={form.categoryKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, categoryKey: e.target.value })} />
+          <Input
+            label="Title"
+            value={form.title}
+            maxLength={FIELD_LIMITS.CAMPAIGN_TITLE}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, title: e.target.value })}
+          />
+          <Input
+            label="Description"
+            value={form.description}
+            maxLength={FIELD_LIMITS.CAMPAIGN_DESCRIPTION}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, description: e.target.value })}
+          />
+          <Input
+            label="Category Key (optional)"
+            value={form.categoryKey}
+            maxLength={FIELD_LIMITS.CATEGORY_KEY}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, categoryKey: e.target.value })}
+          />
           <Input label="Target Goal" type="number" value={String(form.targetGoal)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, targetGoal: Number(e.target.value) })} />
           <Input label="Starts At" type="datetime-local" value={form.startsAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, startsAt: e.target.value })} />
           <Input label="Ends At" type="datetime-local" value={form.endsAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, endsAt: e.target.value })} />

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { EmployerProfilesService } from './employer-profiles.service';
 import { CreateEmployerProfileDto } from './dto/create-employer-profile.dto';
@@ -15,7 +15,7 @@ export class EmployerProfilesController {
 
   @Public()
   @Get('entities/:entityId/employer-profile')
-  async findByEntity(@Param('entityId', ParseUUIDPipe) entityId: string) {
+  async findByEntity(@Param('entityId') entityId: string) {
     return this.service.findByEntity(entityId);
   }
 
@@ -23,7 +23,7 @@ export class EmployerProfilesController {
   @Roles('claimed_owner')
   @Post('entities/:entityId/employer-profile')
   async create(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: CreateEmployerProfileDto,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -34,7 +34,7 @@ export class EmployerProfilesController {
   @Roles('claimed_owner')
   @Patch('entities/:entityId/employer-profile')
   async update(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @Body() dto: UpdateEmployerProfileDto,
     @CurrentUser() user: JwtPayload,
   ) {
@@ -45,7 +45,7 @@ export class EmployerProfilesController {
   @Roles('admin')
   @Post('admin/entities/:entityId/verify-employer')
   async verifyEmployer(
-    @Param('entityId', ParseUUIDPipe) entityId: string,
+    @Param('entityId') entityId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.verifyEmployer(entityId, 'admin_verification', user.sub);

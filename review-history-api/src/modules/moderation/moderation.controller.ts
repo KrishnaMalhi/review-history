@@ -21,6 +21,12 @@ export class ModerationController {
     return this.moderationService.listCases(query.page, query.pageSize, query.status);
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Moderation transparency stats' })
+  stats() {
+    return this.moderationService.getTransparencyStats();
+  }
+
   @Get('cases/:id')
   @ApiOperation({ summary: 'Get moderation case details' })
   getCase(@Param('id') id: string) {

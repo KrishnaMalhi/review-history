@@ -10,6 +10,7 @@ import { Button, Card, CardContent, Badge, CardSkeleton, EmptyState } from '@/co
 import { useSearchEntities, useCategories, useCities } from '@/hooks/use-api';
 import { TrustScoreBadge } from '@/components/shared/trust-score';
 import { Breadcrumbs } from '@/components/seo/breadcrumbs';
+import { FIELD_LIMITS } from '@shared/field-limits';
 const sortOptions = [
   { value: '', label: 'Relevance' },
   { value: 'rating_desc', label: 'Highest Rated' },
@@ -28,7 +29,7 @@ function SearchResults() {
   const [city, setCity] = useState(searchParams.get('city') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || '');
   const [minRating, setMinRating] = useState(searchParams.get('minRating') || '');
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(Number(searchParams.get('page') || 1));
 
   const { data: categories } = useCategories();
   const { data: cities } = useCities();
@@ -42,16 +43,59 @@ function SearchResults() {
 
   const { data, isLoading } = useSearchEntities(params);
 
+  useEffect(() => {
+    if (!data?.meta?.totalPages) return;
+    if (page > data.meta.totalPages) {
+      setPage(data.meta.totalPages);
+    }
+    if (page < 1) {
+      setPage(1);
+    }
+  }, [data?.meta?.totalPages, page]);
+
+  const getVisiblePages = (currentPage: number, totalPages: number): (number | 'ellipsis')[] => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const pages: (number | 'ellipsis')[] = [1];
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    if (start > 2) {
+      pages.push('ellipsis');
+    }
+
+    for (let pageNum = start; pageNum <= end; pageNum += 1) {
+      pages.push(pageNum);
+    }
+
+    if (end < totalPages - 1) {
+      pages.push('ellipsis');
+    }
+
+    pages.push(totalPages);
+    return pages;
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const sp = new URLSearchParams();
+      if (query) sp.set('q', query);
+      if (category) sp.set('category', category);
+      if (city) sp.set('city', city);
+      if (sort) sp.set('sort', sort);
+      if (minRating) sp.set('minRating', minRating);
+      if (page > 1) sp.set('page', String(page));
+      router.replace(sp.toString() ? `/search?${sp.toString()}` : '/search');
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [query, category, city, sort, minRating, page, router]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    const sp = new URLSearchParams();
-    if (query) sp.set('q', query);
-    if (category) sp.set('category', category);
-    if (city) sp.set('city', city);
-    if (sort) sp.set('sort', sort);
-    if (minRating) sp.set('minRating', minRating);
-    router.push(`/search?${sp.toString()}`);
   };
 
   const clearFilters = () => {
@@ -97,6 +141,34 @@ function SearchResults() {
                 )}
               </div>
             </div>
+
+            {categories && categories.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setCategory(''); setPage(1); }}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    !category ? 'bg-primary text-white' : 'bg-white text-muted ring-1 ring-border hover:bg-surface'
+                  }`}
+                >
+                  All categories
+                </button>
+                {categories.slice(0, 6).map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => { setCategory(c.key); setPage(1); }}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                      category === c.key
+                        ? 'bg-primary text-white'
+                        : 'bg-white text-muted ring-1 ring-border hover:bg-surface'
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Search & Filter Panel */}
@@ -109,6 +181,7 @@ function SearchResults() {
                 <input
                   type="text"
                   value={query}
+                  maxLength={FIELD_LIMITS.SEARCH_Q}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search by name, category, or location..."
                   className="w-full rounded-xl border border-border bg-surface/50 py-3 pl-11 pr-4 text-sm text-foreground placeholder:text-muted/60 transition-all focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:shadow-sm"
@@ -341,19 +414,26 @@ function SearchResults() {
                     Previous
                   </Button>
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(data.meta.totalPages, 5) }, (_, i) => {
-                      const pageNum = i + 1;
+                    {getVisiblePages(page, data.meta.totalPages).map((pageItem, index) => {
+                      if (pageItem === 'ellipsis') {
+                        return (
+                          <span key={`ellipsis-${index}`} className="px-2 text-sm text-muted">
+                            ...
+                          </span>
+                        );
+                      }
+
                       return (
                         <button
-                          key={pageNum}
-                          onClick={() => setPage(pageNum)}
+                          key={pageItem}
+                          onClick={() => setPage(pageItem)}
                           className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-colors ${
-                            page === pageNum
+                            page === pageItem
                               ? 'bg-primary text-white'
                               : 'text-muted hover:bg-surface'
                           }`}
                         >
-                          {pageNum}
+                          {pageItem}
                         </button>
                       );
                     })}

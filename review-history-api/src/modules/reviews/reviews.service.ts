@@ -5,20 +5,24 @@ import {
   ConflictException,
   ForbiddenException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
 import { ListReviewsDto } from './dto/list-reviews.dto';
+import { CreateReviewCommentDto } from './dto/create-review-comment.dto';
+import { ReactReviewCommentDto } from './dto/react-review-comment.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, ReviewCommentReactionType } from '@prisma/client';
 import { CategoryExtensionsService } from '../category-extensions/category-extensions.service';
 import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
 import { ReviewQualityService } from '../review-quality/review-quality.service';
 import { BadgesService } from '../badges/badges.service';
 import { ResponseMetricsService } from '../response-metrics/response-metrics.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class ReviewsService {
@@ -32,6 +36,7 @@ export class ReviewsService {
     private readonly reviewQuality: ReviewQualityService,
     private readonly badges: BadgesService,
     private readonly responseMetrics: ResponseMetricsService,
+    @Optional() private readonly realtime?: RealtimeGateway,
   ) {}
 
   async create(entityId: string, dto: CreateReviewDto, userId: string) {
@@ -98,6 +103,9 @@ export class ReviewsService {
         riskState,
         underVerification: riskState !== 'clean',
         publishedAt: riskState === 'clean' ? new Date() : null,
+        evidenceUrls: dto.evidenceUrls && dto.evidenceUrls.length > 0
+          ? dto.evidenceUrls.slice(0, 5)
+          : [],
         tagLinks: {
           create: tagLinks.map((tl) => ({ tagId: tl.tagId, intensity: tl.intensity })),
         },
@@ -211,6 +219,7 @@ export class ReviewsService {
       languageCode: r.languageCode,
       status: r.status,
       underVerification: r.underVerification,
+      evidenceUrls: r.evidenceUrls,
       helpfulCount: r.helpfulCount,
       notHelpfulCount: r.notHelpfulCount,
       fakeVoteCount: r.fakeVoteCount,
@@ -469,8 +478,28 @@ export class ReviewsService {
     category?: string,
     sort: 'recent' | 'helpful' | 'trending' = 'recent',
     rating?: number,
+    following?: boolean,
+    userId?: string,
   ) {
     const skip = (page - 1) * pageSize;
+    let followedEntityIds: string[] | undefined;
+
+    if (following) {
+      if (!userId) {
+        return new PaginatedResponse([], 0, page, pageSize);
+      }
+
+      const follows = await this.prisma.follow.findMany({
+        where: { userId, targetType: 'entity' },
+        select: { targetId: true },
+      });
+      followedEntityIds = follows.map((f) => f.targetId);
+
+      if (followedEntityIds.length === 0) {
+        return new PaginatedResponse([], 0, page, pageSize);
+      }
+    }
+
     const orderBy: Prisma.ReviewOrderByWithRelationInput[] =
       sort === 'helpful'
         ? [{ helpfulCount: 'desc' }, { publishedAt: 'desc' }]
@@ -485,6 +514,7 @@ export class ReviewsService {
       entity: {
         deletedAt: null,
         status: { notIn: ['merged', 'archived', 'suspended'] },
+        ...(followedEntityIds ? { id: { in: followedEntityIds } } : {}),
         ...(category ? { category: { key: category } } : {}),
       },
     };
@@ -497,6 +527,15 @@ export class ReviewsService {
         take: pageSize,
         include: {
           author: { select: { id: true, displayName: true, trustLevel: true } },
+          ...(userId
+            ? {
+                votes: {
+                  where: { voterUserId: userId },
+                  select: { voteType: true },
+                  take: 1,
+                },
+              }
+            : {}),
           entity: {
             select: {
               id: true,
@@ -518,12 +557,22 @@ export class ReviewsService {
             orderBy: { createdAt: 'asc' },
             take: 3,
           },
+          comments: {
+            where: { deletedAt: null },
+            include: { author: { select: { id: true, displayName: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+          },
+          _count: {
+            select: { comments: true },
+          },
         },
       }),
       this.prisma.review.count({ where }),
     ]);
 
     const items = reviews.map((r) => ({
+      ...(userId ? { userVote: (r as any).votes?.[0]?.voteType ?? null } : {}),
       id: r.id,
       overallRating: r.overallRating,
       title: r.title,
@@ -564,9 +613,155 @@ export class ReviewsService {
         authorName: reply.author.displayName,
         createdAt: reply.createdAt,
       })),
+      commentCount: r._count.comments,
+      comments: r.comments.map((comment) => ({
+        id: comment.id,
+        body: comment.body,
+        isAnonymous: comment.isAnonymous,
+        likeCount: comment.likeCount,
+        dislikeCount: comment.dislikeCount,
+        createdAt: comment.createdAt,
+        author: comment.isAnonymous
+          ? { id: null, displayName: 'Anonymous' }
+          : { id: comment.author.id, displayName: comment.author.displayName || 'User' },
+      })),
     }));
 
     return new PaginatedResponse(items, total, page, pageSize);
+  }
+
+  async getReviewComments(reviewId: string, page: number = 1, pageSize: number = 20) {
+    const review = await this.prisma.review.findFirst({
+      where: { id: reviewId, deletedAt: null, status: 'published' },
+      select: { id: true },
+    });
+    if (!review) throw new NotFoundException('Review not found');
+
+    const skip = (page - 1) * pageSize;
+    const where: Prisma.ReviewCommentWhereInput = { reviewId, deletedAt: null };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.reviewComment.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: { author: { select: { id: true, displayName: true } } },
+      }),
+      this.prisma.reviewComment.count({ where }),
+    ]);
+
+    const items = rows.map((row) => ({
+      id: row.id,
+      body: row.body,
+      isAnonymous: row.isAnonymous,
+      likeCount: row.likeCount,
+      dislikeCount: row.dislikeCount,
+      createdAt: row.createdAt,
+      author: row.isAnonymous
+        ? { id: null, displayName: 'Anonymous' }
+        : { id: row.author.id, displayName: row.author.displayName || 'User' },
+    }));
+
+    return new PaginatedResponse(items, total, page, pageSize);
+  }
+
+  async addReviewComment(reviewId: string, dto: CreateReviewCommentDto, userId: string) {
+    const review = await this.prisma.review.findFirst({
+      where: { id: reviewId, deletedAt: null, status: 'published' },
+      select: { id: true },
+    });
+    if (!review) throw new NotFoundException('Review not found');
+
+    const row = await this.prisma.reviewComment.create({
+      data: {
+        reviewId,
+        authorUserId: userId,
+        body: sanitizeInput(dto.body),
+        isAnonymous: dto.isAnonymous ?? false,
+      },
+      include: { author: { select: { id: true, displayName: true } } },
+    });
+
+    const totalComments = await this.prisma.reviewComment.count({
+      where: { reviewId, deletedAt: null },
+    });
+
+    const result = {
+      id: row.id,
+      body: row.body,
+      isAnonymous: row.isAnonymous,
+      likeCount: row.likeCount,
+      dislikeCount: row.dislikeCount,
+      createdAt: row.createdAt,
+      author: row.isAnonymous
+        ? { id: null, displayName: 'Anonymous' }
+        : { id: row.author.id, displayName: row.author.displayName || 'User' },
+    };
+
+    this.realtime?.emitReviewComment(reviewId, result, totalComments);
+    return result;
+  }
+
+  async reactReviewComment(
+    reviewId: string,
+    commentId: string,
+    dto: ReactReviewCommentDto,
+    userId: string,
+  ) {
+    const comment = await this.prisma.reviewComment.findFirst({
+      where: { id: commentId, reviewId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+
+    const existing = await this.prisma.reviewCommentReaction.findUnique({
+      where: { one_comment_reaction_per_user: { commentId, userId } },
+    });
+
+    if (existing?.type === dto.type) {
+      await this.prisma.reviewCommentReaction.delete({
+        where: { one_comment_reaction_per_user: { commentId, userId } },
+      });
+    } else if (existing) {
+      await this.prisma.reviewCommentReaction.update({
+        where: { one_comment_reaction_per_user: { commentId, userId } },
+        data: { type: dto.type as ReviewCommentReactionType },
+      });
+    } else {
+      await this.prisma.reviewCommentReaction.create({
+        data: {
+          commentId,
+          userId,
+          type: dto.type as ReviewCommentReactionType,
+        },
+      });
+      await this.reviewStreaks.recordActivity(userId, 'like_or_vote');
+    }
+
+    const [likeCount, dislikeCount, userReaction] = await Promise.all([
+      this.prisma.reviewCommentReaction.count({ where: { commentId, type: 'like' } }),
+      this.prisma.reviewCommentReaction.count({ where: { commentId, type: 'dislike' } }),
+      this.prisma.reviewCommentReaction.findUnique({
+        where: { one_comment_reaction_per_user: { commentId, userId } },
+        select: { type: true },
+      }),
+    ]);
+
+    await this.prisma.reviewComment.update({
+      where: { id: commentId },
+      data: { likeCount, dislikeCount },
+    });
+
+    this.realtime?.emitReviewCommentReaction(reviewId, commentId, likeCount, dislikeCount);
+
+    return {
+      reviewId,
+      commentId,
+      likeCount,
+      dislikeCount,
+      userReaction: userReaction?.type || null,
+    };
   }
 
   private async assessRisk(body: string, userId: string): Promise<'clean' | 'low_confidence' | 'under_verification'> {

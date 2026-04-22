@@ -12,6 +12,11 @@ import { ClaimVerificationMethod } from '@prisma/client';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 
+const EMPLOYER_CATEGORIES = ['employer', 'workplace', 'workspace', 'company'];
+const SCHOOL_CATEGORIES = ['school', 'college', 'university', 'madrasa'];
+const MEDICAL_CATEGORIES = ['doctor', 'hospital', 'clinic', 'dentist'];
+const PRODUCT_CATEGORIES = ['food_product', 'product'];
+
 @Injectable()
 export class EntityClaimsService {
   private readonly logger = new Logger(EntityClaimsService.name);
@@ -23,6 +28,10 @@ export class EntityClaimsService {
       where: { id: entityId, deletedAt: null },
     });
     if (!entity) throw new NotFoundException('Entity not found');
+
+    if (entity.isClaimed && entity.claimedUserId && entity.claimedUserId !== userId) {
+      throw new ConflictException('This entity is already claimed by another owner');
+    }
 
     // Check for existing pending/approved claim
     const existing = await this.prisma.entityClaim.findFirst({
@@ -62,6 +71,29 @@ export class EntityClaimsService {
     });
     if (!claim) throw new NotFoundException('Pending claim not found');
 
+    if (dto.action === 'approved') {
+      const [entity, otherApprovedClaim] = await Promise.all([
+        this.prisma.entity.findUnique({
+          where: { id: claim.entityId },
+          select: { id: true, isClaimed: true, claimedUserId: true },
+        }),
+        this.prisma.entityClaim.findFirst({
+          where: {
+            entityId: claim.entityId,
+            status: 'approved',
+            requesterUserId: { not: claim.requesterUserId },
+          },
+          select: { id: true },
+        }),
+      ]);
+
+      if (!entity) throw new NotFoundException('Entity not found');
+
+      if ((entity.isClaimed && entity.claimedUserId && entity.claimedUserId !== claim.requesterUserId) || otherApprovedClaim) {
+        throw new ConflictException('This entity already has an approved owner claim');
+      }
+    }
+
     const updatedClaim = await this.prisma.entityClaim.update({
       where: { id: claimId },
       data: {
@@ -83,6 +115,9 @@ export class EntityClaimsService {
         where: { id: claim.entityId },
         data: { claimedUserId: claim.requesterUserId, isClaimed: true },
       });
+
+      // Provision category-specific profile shell so admin "Entity Profiles" shows the entity immediately.
+      await this.ensureCategoryProfileExists(claim.entityId);
     }
 
     await this.prisma.auditLog.create({
@@ -97,6 +132,52 @@ export class EntityClaimsService {
     });
 
     return { claimId, status: updatedClaim.status };
+  }
+
+  private async ensureCategoryProfileExists(entityId: string) {
+    const entity = await this.prisma.entity.findUnique({
+      where: { id: entityId },
+      select: { id: true, category: { select: { key: true } } },
+    });
+    if (!entity) return;
+
+    const categoryKey = entity.category?.key;
+    if (!categoryKey) return;
+
+    if (EMPLOYER_CATEGORIES.includes(categoryKey)) {
+      await this.prisma.employerProfile.upsert({
+        where: { entityId },
+        update: {},
+        create: { entityId },
+      });
+      return;
+    }
+
+    if (SCHOOL_CATEGORIES.includes(categoryKey)) {
+      await this.prisma.schoolProfile.upsert({
+        where: { entityId },
+        update: {},
+        create: { entityId },
+      });
+      return;
+    }
+
+    if (MEDICAL_CATEGORIES.includes(categoryKey)) {
+      await this.prisma.medicalProfile.upsert({
+        where: { entityId },
+        update: {},
+        create: { entityId },
+      });
+      return;
+    }
+
+    if (PRODUCT_CATEGORIES.includes(categoryKey)) {
+      await this.prisma.productProfile.upsert({
+        where: { entityId },
+        update: {},
+        create: { entityId },
+      });
+    }
   }
 
   async listPendingClaims(page: number = 1, pageSize: number = 20) {

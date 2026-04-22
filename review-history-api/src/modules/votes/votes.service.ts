@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { VoteType } from '@prisma/client';
+import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class VotesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reviewStreaks: ReviewStreaksService,
+    @Optional() private readonly realtime?: RealtimeGateway,
+  ) {}
 
   async vote(reviewId: string, userId: string, voteType: VoteType) {
     const review = await this.prisma.review.findFirst({
@@ -20,7 +26,8 @@ export class VotesService {
     if (existing) {
       // Remove vote (toggle off)
       await this.prisma.reviewVote.delete({ where: { id: existing.id } });
-      await this.updateVoteCounts(reviewId);
+      const counts = await this.updateVoteCounts(reviewId);
+      this.realtime?.emitReviewVote(reviewId, counts.helpful, counts.notHelpful, counts.seemsFake);
       return { action: 'removed', voteType };
     }
 
@@ -38,7 +45,10 @@ export class VotesService {
       },
     });
 
-    await this.updateVoteCounts(reviewId);
+    await this.reviewStreaks.recordActivity(userId, 'like_or_vote');
+
+    const counts = await this.updateVoteCounts(reviewId);
+    this.realtime?.emitReviewVote(reviewId, counts.helpful, counts.notHelpful, counts.seemsFake);
     return { action: 'added', voteType };
   }
 
@@ -71,5 +81,7 @@ export class VotesService {
       where: { id: reviewId },
       data: { helpfulCount: helpful, notHelpfulCount: notHelpful, fakeVoteCount: seemsFake },
     });
+
+    return { helpful, notHelpful, seemsFake };
   }
 }

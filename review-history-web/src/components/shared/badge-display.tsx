@@ -18,6 +18,7 @@ const badgeConfig: Record<BadgeType, { label: string; icon: typeof Award; color:
   employee_trusted: { label: 'Employee Trusted', icon: Shield, color: 'text-teal-600 bg-teal-50' },
   fast_responder: { label: 'Fast Responder', icon: Zap, color: 'text-yellow-600 bg-yellow-50' },
   responsive_employer: { label: 'Responsive Employer', icon: Zap, color: 'text-cyan-600 bg-cyan-50' },
+  verified_employer: { label: 'Verified Employer', icon: Shield, color: 'text-emerald-600 bg-emerald-50' },
   school_rated: { label: 'School Rated', icon: Award, color: 'text-violet-600 bg-violet-50' },
   doctor_rated: { label: 'Doctor Rated', icon: Award, color: 'text-sky-600 bg-sky-50' },
   product_rated: { label: 'Product Rated', icon: Award, color: 'text-lime-600 bg-lime-50' },
@@ -49,8 +50,8 @@ export function UserBadgeDisplay({ badges, max = 5 }: { badges: UserBadge[]; max
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {shown.map((b) => (
-        <BadgePill key={b.id} badgeType={b.badgeType} />
+      {shown.map((b, idx) => (
+        <BadgePill key={`${b.id ?? 'badge'}-${b.badgeType}-${idx}`} badgeType={b.badgeType} />
       ))}
       {remaining > 0 && (
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
@@ -68,8 +69,8 @@ export function EntityBadgeDisplay({ badges, max = 5 }: { badges: EntityBadge[];
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {shown.map((b) => (
-        <BadgePill key={b.id} badgeType={b.badgeType} />
+      {shown.map((b, idx) => (
+        <BadgePill key={`${b.id ?? 'badge'}-${b.badgeType}-${idx}`} badgeType={b.badgeType} />
       ))}
       {remaining > 0 && (
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">

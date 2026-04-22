@@ -6,12 +6,16 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateFollowDto } from './dto/create-follow.dto';
+import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
 
 @Injectable()
 export class FollowsService {
   private static readonly MAX_FOLLOWS_PER_USER = 200;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reviewStreaks: ReviewStreaksService,
+  ) {}
 
   async create(dto: CreateFollowDto, userId: string) {
     // Validate target exists
@@ -52,6 +56,8 @@ export class FollowsService {
         targetId: dto.targetId,
       },
     });
+
+    await this.reviewStreaks.recordActivity(userId, 'follow');
 
     return { id: follow.id, targetType: follow.targetType, targetId: follow.targetId };
   }

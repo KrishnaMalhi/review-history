@@ -141,4 +141,52 @@ export class AdminService {
 
     return this.prisma.category.delete({ where: { id } });
   }
+
+  // ─── REPORTS ──────────────────────────────────
+
+  async listReports(page: number = 1, pageSize: number = 50, reportType?: string, status?: string) {
+    const skip = (page - 1) * pageSize;
+    const where: any = {};
+    if (reportType) where.reportType = reportType;
+    if (status) where.status = status;
+
+    const [rawItems, total] = await Promise.all([
+      this.prisma.reviewReport.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          review: {
+            select: {
+              id: true,
+              body: true,
+              overallRating: true,
+              entity: { select: { id: true, displayName: true } },
+            },
+          },
+          reporter: { select: { id: true, displayName: true, phoneE164: true } },
+        },
+      }),
+      this.prisma.reviewReport.count({ where }),
+    ]);
+
+    const items = rawItems.map((item) => ({
+      ...item,
+      review: item.review
+        ? {
+            ...item.review,
+            rating: item.review.overallRating,
+            entity: item.review.entity
+              ? {
+                  id: item.review.entity.id,
+                  name: item.review.entity.displayName,
+                }
+              : null,
+          }
+        : null,
+    }));
+
+    return new PaginatedResponse(items, total, page, pageSize);
+  }
 }

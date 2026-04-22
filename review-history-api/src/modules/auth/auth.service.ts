@@ -19,8 +19,14 @@ interface EmailOtpPayload {
   email: string;
   otpHash: string;
   attempts: number;
-  purpose: 'register' | 'login' | 'verify';
+  purpose: 'register' | 'login' | 'verify' | 'reset';
   createdAt: number;
+}
+
+interface OtpChallengeResponse {
+  otpRequestId: string;
+  cooldownSeconds: number;
+  otpCode?: string;
 }
 
 @Injectable()
@@ -35,6 +41,13 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterUserDto, ipHash: string) {
+    if (!dto.acceptTerms || !dto.acceptPrivacy) {
+      throw new BadRequestException({
+        code: 'LEGAL_ACCEPTANCE_REQUIRED',
+        message: 'You must accept the Terms and Privacy Policy to register.',
+      });
+    }
+
     const email = dto.email.trim().toLowerCase();
     const phone = normalizePhone(dto.phone);
 
@@ -66,6 +79,9 @@ export class AuthService {
         passwordHash,
         displayName: dto.displayName?.trim() || null,
         role: 'user',
+        termsAcceptedAt: new Date(),
+        privacyAcceptedAt: new Date(),
+        legalVersion: '2026-04-20',
       },
     });
 
@@ -73,6 +89,7 @@ export class AuthService {
     return {
       otpRequestId: otp.otpRequestId,
       cooldownSeconds: otp.cooldownSeconds,
+      otpCode: otp.otpCode,
       email,
       requiresVerification: true,
     };
@@ -141,6 +158,7 @@ export class AuthService {
     return {
       otpRequestId: otp.otpRequestId,
       cooldownSeconds: otp.cooldownSeconds,
+      otpCode: otp.otpCode,
       email,
       requiresVerification: true,
       loginReason: 'email_not_verified',
@@ -162,9 +180,136 @@ export class AuthService {
     return {
       otpRequestId: otp.otpRequestId,
       cooldownSeconds: otp.cooldownSeconds,
+      otpCode: otp.otpCode,
       email,
       requiresVerification: true,
     };
+  }
+
+  async forgotPassword(dto: { email: string; adminOnly?: boolean }, ipHash: string) {
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        status: 'active',
+        ...(dto.adminOnly ? { role: { in: ['admin', 'super_admin'] } } : {}),
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException({
+        code: 'EMAIL_NOT_FOUND',
+        message: 'No account found for this email.',
+      });
+    }
+
+    const otp = await this.createEmailOtpRequest(user.id, email, 'reset', ipHash);
+    return {
+      otpRequestId: otp.otpRequestId,
+      cooldownSeconds: otp.cooldownSeconds,
+      otpCode: otp.otpCode,
+      email,
+      requiresVerification: true,
+    };
+  }
+
+  async verifyResetOtp(dto: { otpRequestId: string; code: string }) {
+    const otpDataStr = await this.redis.get(dto.otpRequestId);
+    if (!otpDataStr) {
+      throw new BadRequestException({
+        code: 'OTP_EXPIRED',
+        message: 'OTP has expired or is invalid.',
+      });
+    }
+
+    const otpData = JSON.parse(otpDataStr) as EmailOtpPayload;
+    if (otpData.purpose !== 'reset') {
+      throw new BadRequestException({
+        code: 'OTP_INVALID_PURPOSE',
+        message: 'OTP purpose is invalid for password reset.',
+      });
+    }
+
+    const maxAttempts = this.config.get<number>('OTP_MAX_ATTEMPTS', 5);
+    if (otpData.attempts >= maxAttempts) {
+      await this.redis.del(dto.otpRequestId);
+      throw new BadRequestException({
+        code: 'OTP_MAX_ATTEMPTS_EXCEEDED',
+        message: 'Maximum verification attempts exceeded. Request a new OTP.',
+      });
+    }
+
+    if (hashValue(dto.code) !== otpData.otpHash) {
+      otpData.attempts += 1;
+      const ttl = await this.redis.ttl(dto.otpRequestId);
+      await this.redis.set(dto.otpRequestId, JSON.stringify(otpData), ttl > 0 ? ttl : 60);
+      throw new UnauthorizedException({
+        code: 'OTP_INVALID',
+        message: 'Invalid OTP code.',
+      });
+    }
+
+    await this.redis.del(dto.otpRequestId);
+
+    const user = await this.prisma.user.findFirst({
+      where: { id: otpData.userId, email: otpData.email, status: 'active' },
+    });
+    if (!user) {
+      throw new UnauthorizedException({
+        code: 'USER_NOT_FOUND',
+        message: 'User not found for password reset.',
+      });
+    }
+
+    const resetToken = `reset_pwd_${uuidv4()}`;
+    await this.redis.set(
+      resetToken,
+      JSON.stringify({ userId: user.id, email: user.email, createdAt: Date.now() }),
+      15 * 60,
+    );
+
+    return {
+      resetToken,
+      expiresInSeconds: 15 * 60,
+    };
+  }
+
+  async resetPassword(dto: { resetToken: string; newPassword: string }) {
+    const tokenPayloadStr = await this.redis.get(dto.resetToken);
+    if (!tokenPayloadStr) {
+      throw new BadRequestException({
+        code: 'RESET_TOKEN_INVALID',
+        message: 'Reset token is invalid or expired.',
+      });
+    }
+
+    const tokenPayload = JSON.parse(tokenPayloadStr) as { userId: string; email: string | null };
+    const user = await this.prisma.user.findFirst({
+      where: { id: tokenPayload.userId, status: 'active' },
+    });
+    if (!user) {
+      throw new UnauthorizedException({
+        code: 'USER_NOT_FOUND',
+        message: 'User not found for password reset.',
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      }),
+      this.prisma.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    await this.redis.del(dto.resetToken);
+
+    return { message: 'Password has been reset successfully.' };
   }
 
   async verifyEmailOtp(dto: VerifyEmailOtpDto, ipHash: string, userAgent: string) {
@@ -298,6 +443,7 @@ export class AuthService {
     return {
       otpRequestId,
       cooldownSeconds,
+      ...(this.shouldExposeOtpCode() ? { otpCode: otp } : {}),
     };
   }
 
@@ -529,7 +675,7 @@ export class AuthService {
     email: string,
     purpose: EmailOtpPayload['purpose'],
     ipHash: string,
-  ) {
+  ): Promise<OtpChallengeResponse> {
     const rateLimitKey = `email_otp_rate:${email}`;
     const currentCount = await this.redis.incr(rateLimitKey);
     if (currentCount === 1) {
@@ -573,7 +719,19 @@ export class AuthService {
     // Email provider hook; defaults to console in development.
     this.logger.log(`Email OTP (${purpose}) for ${email}: ${otp}`);
 
-    return { otpRequestId, cooldownSeconds };
+    return {
+      otpRequestId,
+      cooldownSeconds,
+      ...(this.shouldExposeOtpCode() ? { otpCode: otp } : {}),
+    };
+  }
+
+  private shouldExposeOtpCode(): boolean {
+    const explicit = this.config.get<string>('AUTH_EXPOSE_OTP_CODE');
+    if (explicit !== undefined) {
+      return explicit === 'true';
+    }
+    return this.config.get<string>('NODE_ENV', 'development') !== 'production';
   }
 
   private async upsertDevice(userId: string, ipHash: string, userAgent: string) {

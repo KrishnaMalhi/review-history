@@ -1,7 +1,14 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { apiGet, apiPost, setAccessToken, clearAccessToken, getAccessToken } from '@/lib/api-client';
+import {
+  apiGet,
+  apiPost,
+  setAccessToken,
+  clearAccessToken,
+  getAccessToken,
+  SESSION_EXPIRED_EVENT,
+} from '@/lib/api-client';
 import type { User, AdminLoginResponse } from '@/types';
 
 interface AuthContextType {
@@ -34,8 +41,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshUser().finally(() => setIsLoading(false));
+    let mounted = true;
+    (async () => {
+      await refreshUser();
+      if (mounted) {
+        setIsLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [refreshUser]);
+
+  useEffect(() => {
+    const onSessionExpired = () => {
+      clearAccessToken();
+      setUser(null);
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/login')) {
+        window.location.href = '/auth/login?reason=session_expired';
+      }
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired as EventListener);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired as EventListener);
+  }, []);
 
   const login = async (email: string, password: string): Promise<AdminLoginResponse> => {
     const result = await apiPost<AdminLoginResponse>('/auth/admin/login', { email, password });
@@ -50,6 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       clearAccessToken();
       setUser(null);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
     }
   };
 

@@ -13,6 +13,7 @@ import {
 import { useToast } from '@/components/shared/toast';
 import { IconPicker, CategoryIcon } from '@/components/shared/icon-picker';
 import type { Category } from '@/types';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 interface CategoryForm {
   key: string;
@@ -224,7 +225,7 @@ export default function CategoriesPage() {
             label="Key (slug)"
             placeholder="e.g. landlord"
             value={form.key}
-            maxLength={50}
+            maxLength={FIELD_LIMITS.CATEGORY_KEY}
             onChange={(e) => setForm({ ...form, key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
             required
             disabled={!!editingId}
@@ -233,7 +234,7 @@ export default function CategoriesPage() {
             label="Name (English)"
             placeholder="e.g. Landlord"
             value={form.nameEn}
-            maxLength={100}
+            maxLength={FIELD_LIMITS.CATEGORY_NAME_EN}
             onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
             required
           />
@@ -241,7 +242,7 @@ export default function CategoriesPage() {
             label="Name (Urdu)"
             placeholder="e.g. مالک مکان"
             value={form.nameUr}
-            maxLength={200}
+            maxLength={FIELD_LIMITS.CATEGORY_NAME_UR}
             onChange={(e) => setForm({ ...form, nameUr: e.target.value })}
             required
             dir="rtl"
@@ -251,7 +252,7 @@ export default function CategoriesPage() {
             label="Description"
             placeholder="e.g. Landlords and property owners"
             value={form.description}
-            maxLength={300}
+            maxLength={FIELD_LIMITS.CATEGORY_DESCRIPTION}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
           <div className="grid grid-cols-2 gap-4">

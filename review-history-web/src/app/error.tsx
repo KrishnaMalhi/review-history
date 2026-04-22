@@ -1,9 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { PublicLayout } from '@/components/layout/public-layout';
 
 export default function GlobalError({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -24,12 +25,12 @@ export default function GlobalError({
           >
             Try Again
           </button>
-          <a
+          <Link
             href="/"
             className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Go Home
-          </a>
+          </Link>
         </div>
       </div>
     </PublicLayout>

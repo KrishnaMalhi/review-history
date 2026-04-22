@@ -7,6 +7,7 @@ import {
   Body,
   Query,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { Public } from '../../common/decorators/public.decorator';
@@ -22,7 +23,7 @@ class CreateCampaignDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
+  @MaxLength(FIELD_LIMITS.CAMPAIGN_DESCRIPTION)
   description?: string;
 
   @IsOptional()
@@ -30,10 +31,20 @@ class CreateCampaignDto {
   categoryKey?: string;
 
   @IsDateString()
-  startDate!: string;
+  @IsOptional()
+  startDate?: string;
 
   @IsDateString()
-  endDate!: string;
+  @IsOptional()
+  startsAt?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endsAt?: string;
 
   @IsOptional()
   @IsInt()
@@ -48,10 +59,17 @@ export class CampaignsController {
   @Roles('admin')
   @Post()
   async create(@Body() dto: CreateCampaignDto) {
+    const startDateValue = dto.startDate ?? dto.startsAt;
+    const endDateValue = dto.endDate ?? dto.endsAt;
+
+    if (!startDateValue || !endDateValue) {
+      throw new BadRequestException('startDate and endDate are required');
+    }
+
     return this.service.create({
       ...dto,
-      startDate: new Date(dto.startDate),
-      endDate: new Date(dto.endDate),
+      startDate: new Date(startDateValue),
+      endDate: new Date(endDateValue),
     });
   }
 

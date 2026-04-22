@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Skeleton } from '@/components/ui';
@@ -14,6 +15,12 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/auth/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -25,10 +32,7 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated) {
-    router.replace('/auth/login');
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   if (roles && user && !roles.includes(user.role)) {
     return (

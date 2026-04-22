@@ -6,10 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CommunityValidationType } from '@prisma/client';
+import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
 
 @Injectable()
 export class CommunityValidationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reviewStreaks: ReviewStreaksService,
+  ) {}
 
   async validate(
     reviewId: string,
@@ -38,6 +42,8 @@ export class CommunityValidationsService {
         validationType,
       },
     });
+
+    await this.reviewStreaks.recordActivity(userId, 'community_validation');
 
     // Update review helpful counts based on type
     if (validationType === 'confirmed') {

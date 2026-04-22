@@ -6,6 +6,7 @@ import { MessageSquare } from 'lucide-react';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { Card, Badge, Skeleton } from '@/components/ui';
 import { useAdminReviews } from '@/hooks/use-api';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 export default function AdminReviewsPage() {
   const [page, setPage] = useState(1);
@@ -31,6 +32,7 @@ export default function AdminReviewsPage() {
           <input
             type="text"
             value={q}
+            maxLength={FIELD_LIMITS.SEARCH_Q}
             onChange={(e) => {
               setQ(e.target.value);
               setPage(1);
@@ -120,4 +122,3 @@ export default function AdminReviewsPage() {
     </AdminLayout>
   );
 }
-

@@ -42,6 +42,14 @@ export class ResponseTemplatesService {
     });
   }
 
+  async getById(templateId: string) {
+    const template = await this.prisma.responseTemplate.findUnique({
+      where: { id: templateId },
+    });
+    if (!template) throw new NotFoundException('Template not found');
+    return template;
+  }
+
   async update(
     templateId: string,
     data: {

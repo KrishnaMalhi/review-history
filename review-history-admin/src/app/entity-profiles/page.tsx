@@ -15,6 +15,7 @@ import type { AdminEntityProfile } from '@/hooks/use-api';
 import type { PaginatedResponse } from '@/types';
 import { useToast } from '@/components/shared/toast';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 type ProfileTab = 'employer' | 'school' | 'medical' | 'product';
 
@@ -116,6 +117,12 @@ function ProfileList({
                     <ExternalLink className="h-3.5 w-3.5" /> Website
                   </a>
                 )}
+                <Link
+                  href={`/entity-profiles/${tab}/${profile.entityId}`}
+                  className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-light"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Details
+                </Link>
               </div>
             </div>
           </Card>

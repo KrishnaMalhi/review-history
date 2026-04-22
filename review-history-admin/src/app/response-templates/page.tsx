@@ -11,6 +11,8 @@ import {
   useDeleteResponseTemplate,
 } from '@/hooks/use-api';
 import { useToast } from '@/components/shared/toast';
+import { FIELD_LIMITS } from '@shared/field-limits';
+import Link from 'next/link';
 
 interface TemplateForm {
   titleEn: string;
@@ -120,6 +122,9 @@ export default function ResponseTemplatesPage() {
                     <p className="mt-2 text-sm text-muted line-clamp-2">{tpl.bodyEn}</p>
                   </div>
                   <div className="flex gap-1 ml-3">
+                    <Link href={`/response-templates/${tpl.id}`} className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-primary">
+                      <FileText className="h-4 w-4" />
+                    </Link>
                     <button onClick={() => openEdit(tpl)} className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-primary">
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -140,6 +145,7 @@ export default function ResponseTemplatesPage() {
           <Input
             label="Template Title"
             value={form.titleEn}
+            maxLength={FIELD_LIMITS.TEMPLATE_TITLE}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, titleEn: e.target.value })}
           />
           <div>
@@ -148,12 +154,14 @@ export default function ResponseTemplatesPage() {
               className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               rows={5}
               value={form.bodyEn}
+              maxLength={FIELD_LIMITS.TEMPLATE_BODY}
               onChange={(e) => setForm({ ...form, bodyEn: e.target.value })}
             />
           </div>
           <Input
             label="Category Key (optional)"
             value={form.categoryKey}
+            maxLength={FIELD_LIMITS.CATEGORY_KEY}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, categoryKey: e.target.value })}
           />
           <div>

@@ -4,10 +4,14 @@ import { CreateEntityDto } from './dto/create-entity.dto';
 import { UpdateEntityDto } from './dto/update-entity.dto';
 import { normalizeName, normalizePhone, generateFingerprint, sanitizeInput } from '../../common/utils/helpers';
 import { Prisma } from '@prisma/client';
+import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
 
 @Injectable()
 export class EntitiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reviewStreaks: ReviewStreaksService,
+  ) {}
 
   async create(dto: CreateEntityDto, userId: string) {
     // Validate category
@@ -81,6 +85,8 @@ export class EntitiesService {
         metadataJson: { categoryKey: dto.categoryKey, displayName: sanitizedName },
       },
     });
+
+    await this.reviewStreaks.recordActivity(userId, 'add_listing');
 
     return {
       entityId: entity.id,

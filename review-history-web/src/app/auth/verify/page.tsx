@@ -8,6 +8,8 @@ import { useAuth } from '@/lib/auth-context';
 import { otpSchema, type OtpInput } from '@/lib/validators';
 import { Button, Input, Card, CardContent } from '@/components/ui';
 import { PublicLayout } from '@/components/layout';
+import { getApiErrorMessage } from '@/lib/api-client';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 function VerifyForm() {
   const { verifyEmailOtp, requestEmailOtp } = useAuth();
@@ -15,7 +17,9 @@ function VerifyForm() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
   const reason = searchParams.get('reason');
+  const initialOtp = searchParams.get('otp') || '';
   const [otpRequestId, setOtpRequestId] = useState(searchParams.get('otpRequestId') || '');
+  const [otpPreview, setOtpPreview] = useState(initialOtp);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,9 +50,9 @@ function VerifyForm() {
     setLoading(true);
     try {
       await verifyEmailOtp(otpRequestId, data.code);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Invalid code. Please try again.');
+      router.push('/feed');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Invalid code. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -58,9 +62,10 @@ function VerifyForm() {
     try {
       const result = await requestEmailOtp(email);
       setOtpRequestId(result.otpRequestId);
-      setCooldown(60);
-    } catch {
-      setError('Failed to resend OTP.');
+      setOtpPreview(result.otpCode || '');
+      setCooldown(result.cooldownSeconds || 60);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to resend OTP.'));
     }
   }, [email, requestEmailOtp]);
 
@@ -78,6 +83,11 @@ function VerifyForm() {
             <p className="mt-1 text-sm text-muted">
               Enter the 6-digit OTP sent to <span className="font-medium text-foreground">{email}</span>
             </p>
+            {otpPreview && (
+              <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Dev OTP: <span className="font-semibold">{otpPreview}</span>
+              </p>
+            )}
           </div>
 
           <Card>
@@ -86,7 +96,7 @@ function VerifyForm() {
                 <Input
                   label="Verification Code"
                   placeholder="000000"
-                  maxLength={6}
+                  maxLength={FIELD_LIMITS.OTP_CODE}
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   {...register('code')}

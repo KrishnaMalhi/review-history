@@ -44,11 +44,13 @@ export interface AuthTokens {
 export interface OtpRequestResponse {
   otpRequestId: string;
   cooldownSeconds: number;
+  otpCode?: string;
 }
 
 export interface EmailOtpChallengeResponse {
   otpRequestId: string;
   cooldownSeconds: number;
+  otpCode?: string;
   email: string;
   requiresVerification: boolean;
   loginReason?: 'email_not_verified';
@@ -167,6 +169,8 @@ export interface Review {
   createdAt: string;
   tags: string[];
   replies: ReviewReply[];
+  comments?: ReviewComment[];
+  commentCount?: number;
 }
 
 export interface ReviewReply {
@@ -175,6 +179,19 @@ export interface ReviewReply {
   authorName: string | null;
   authorRole: string;
   createdAt: string;
+}
+
+export interface ReviewComment {
+  id: string;
+  body: string;
+  isAnonymous: boolean;
+  likeCount: number;
+  dislikeCount: number;
+  createdAt: string;
+  author: {
+    id: string | null;
+    displayName: string;
+  };
 }
 
 // ── Feed Review (review + entity context) ──
@@ -190,6 +207,7 @@ export interface FeedReview {
   fakeVoteCount: number;
   publishedAt: string | null;
   createdAt: string;
+  userVote?: 'helpful' | 'not_helpful' | null;
   author: {
     id: string | null;
     displayName: string;
@@ -209,6 +227,8 @@ export interface FeedReview {
   };
   tags: { key: string; label: string; isPositive: boolean }[];
   replies: ReviewReply[];
+  comments?: ReviewComment[];
+  commentCount?: number;
 }
 
 // —— Blogs ——
@@ -219,7 +239,26 @@ export interface BlogPost {
   excerpt: string | null;
   content?: string;
   coverImage: string | null;
+  featuredImage?: string | null;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   publishedAt: string | null;
+  readTime?: number | null;
+  views?: number;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  keywords?: string[];
+  ogImageUrl?: string | null;
+  canonicalUrl?: string | null;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  tags?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+  }>;
   createdAt: string;
   updatedAt?: string;
   author: {
@@ -282,7 +321,7 @@ export type BadgeType =
   | 'first_review' | 'five_reviews' | 'ten_reviews' | 'fifty_reviews'
   | 'streak_7' | 'streak_30' | 'community_helper' | 'verified_reviewer'
   | 'quality_reviewer' | 'top_contributor'
-  | 'employee_trusted' | 'fast_responder' | 'responsive_employer'
+  | 'employee_trusted' | 'fast_responder' | 'responsive_employer' | 'verified_employer'
   | 'school_rated' | 'doctor_rated' | 'product_rated' | 'highly_rated';
 
 export interface UserBadge {
@@ -395,6 +434,22 @@ export interface ReviewStreak {
   currentStreak: number;
   longestStreak: number;
   lastReviewDate: string | null;
+  lastActiveDate?: string | null;
+  weeklyCount?: number;
+  totalPoints?: number;
+  activeDaysCount?: number;
+  feedVisitCount?: number;
+  discussionVisitCount?: number;
+  communityVisitCount?: number;
+  activeMinutes?: number;
+  listingsAddedCount?: number;
+  reviewsAddedCount?: number;
+  followsCount?: number;
+  sharesCount?: number;
+  discussionPostsCount?: number;
+  discussionCommentsCount?: number;
+  likesCount?: number;
+  validationsCount?: number;
 }
 
 // ── Campaign ──

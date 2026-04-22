@@ -6,6 +6,7 @@ import { AdminLayout } from '@/components/layout/admin-layout';
 import { Card, Badge, Skeleton } from '@/components/ui';
 import { useAdminUsers, useUpdateUserStatus, useUpdateUserRole } from '@/hooks/use-api';
 import { useToast } from '@/components/shared/toast';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
@@ -55,6 +56,7 @@ export default function AdminUsersPage() {
           type="text"
           placeholder="Search by name or phone..."
           value={search}
+          maxLength={FIELD_LIMITS.SEARCH_Q}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="w-full max-w-md rounded-xl border border-border bg-white px-4 py-2.5 text-sm placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />

@@ -67,4 +67,16 @@ export class AdminController {
   deleteCategory(@Param('id') id: string) {
     return this.adminService.deleteCategory(id);
   }
+
+  // ─── REPORTS ──────────────────────────────────
+
+  @Get('reports')
+  @ApiOperation({ summary: 'List all review reports' })
+  listReports(
+    @Query() query: PaginationDto,
+    @Query('reportType') reportType?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.listReports(query.page, query.pageSize, reportType, status);
+  }
 }

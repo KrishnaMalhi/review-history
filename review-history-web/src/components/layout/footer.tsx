@@ -42,6 +42,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/community" className="text-sm text-gray-300 hover:text-white transition-colors">
+                  Community Hub
+                </Link>
+              </li>
+              <li>
                 <Link href="/search" className="text-sm text-gray-300 hover:text-white transition-colors">
                   Search Reviews
                 </Link>
@@ -61,6 +66,11 @@ export function Footer() {
               <li>
                 <Link href="/entities/add" className="text-sm text-gray-300 hover:text-white transition-colors">
                   Add Your Business
+                </Link>
+              </li>
+              <li>
+                <Link href="/discussions" className="text-sm text-gray-300 hover:text-white transition-colors">
+                  Join Discussions
                 </Link>
               </li>
               <li>

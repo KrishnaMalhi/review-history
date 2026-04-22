@@ -6,16 +6,17 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PublicLayout } from '@/components/layout';
 import { Button, Input, Textarea, Card, CardContent, StarRating } from '@/components/ui';
-import { useEntity, useCreateReview, useCategoryTags } from '@/hooks/use-api';
+import { useEntity, useCreateReview, useCategoryTags, useUploadFile } from '@/hooks/use-api';
 import { createReviewSchema, type CreateReviewInput } from '@/lib/validators';
 import { useAuth } from '@/lib/auth-context';
-import { ArrowLeft, CheckCircle2, AlertCircle, Lightbulb } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, Lightbulb, Paperclip, X } from 'lucide-react';
 import {
   WorkplaceReviewFields,
   SchoolReviewFields,
   MedicalReviewFields,
   ProductReviewFields,
 } from '@/components/review/category-fields';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 const EMPLOYER_KEYS = ['employer', 'company', 'workplace'];
 const SCHOOL_KEYS = ['school', 'college', 'university', 'academy'];
@@ -42,6 +43,8 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
   const [error, setError] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [categoryData, setCategoryData] = useState<Record<string, number>>({});
+  const [evidenceUrls, setEvidenceUrls] = useState<string[]>([]);
+  const uploadFile = useUploadFile();
   const categoryGroup = entity ? getCategoryGroup(entity.categoryKey) : null;
 
   const {
@@ -90,6 +93,7 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
         body: data.body,
         tagKeys: selectedTags,
         ...(Object.keys(categoryData).length > 0 && { categoryData }),
+        ...(evidenceUrls.length > 0 && { evidenceUrls }),
       });
       router.push(`/entities/${id}`);
     } catch (err: any) {
@@ -184,7 +188,7 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
                 <Input
                   label="Review Title (optional)"
                   placeholder="Summarize your main point"
-                  maxLength={200}
+                  maxLength={FIELD_LIMITS.REVIEW_TITLE}
                   {...register('title')}
                   error={errors.title?.message}
                 />
@@ -196,7 +200,7 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
                   </div>
                   <Textarea
                     placeholder="Share specific details... (minimum 10 characters)"
-                    maxLength={5000}
+                    maxLength={FIELD_LIMITS.REVIEW_BODY}
                     {...register('body')}
                     error={errors.body?.message}
                     rows={6}
@@ -263,6 +267,56 @@ export default function WriteReviewPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
               )}
+
+              {/* Evidence Upload */}
+              <div className="space-y-3 pb-6 border-b border-gray-200">
+                <label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />
+                  Supporting Evidence (optional)
+                </label>
+                <p className="text-xs text-gray-500">Attach up to 5 photos or PDF documents (max 5 MB each) to support your review.</p>
+
+                {evidenceUrls.length < 5 && (
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 hover:border-primary hover:bg-primary/5 transition-colors">
+                    <Paperclip className="h-4 w-4 shrink-0" />
+                    {uploadFile.isPending ? 'Uploading...' : 'Click to attach file'}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                      disabled={uploadFile.isPending}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        e.target.value = '';
+                        try {
+                          const result = await uploadFile.mutateAsync(file);
+                          setEvidenceUrls((prev) => [...prev, result.url].slice(0, 5));
+                        } catch {
+                          setError('Upload failed. Please try again.');
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+
+                {evidenceUrls.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {evidenceUrls.map((url, idx) => (
+                      <li key={url} className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
+                        <span className="truncate max-w-xs">{url.split('/').pop()}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEvidenceUrls((prev) => prev.filter((_, i) => i !== idx))}
+                          className="ml-2 shrink-0 text-gray-400 hover:text-red-500"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               {/* Anonymous toggle */}
               <label className="flex items-center gap-2">

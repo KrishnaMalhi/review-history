@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   MessageCircle,
@@ -24,11 +25,13 @@ import {
   useInfiniteDiscussions,
   useInfiniteMyAwareDiscussions,
   useReactDiscussion,
+  useTrackStreakActivity,
 } from '@/hooks/use-api';
 import { useDiscussionSocket } from '@/hooks/use-socket';
 import { useAuth } from '@/lib/auth-context';
 import { formatRelativeTime, cn, truncate } from '@/lib/utils';
 import type { DiscussionPost, DiscussionComment } from '@/types';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 export default function DiscussionsPage() {
   const { isAuthenticated } = useAuth();
@@ -37,23 +40,31 @@ export default function DiscussionsPage() {
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
 
-  const infiniteQuery = isAuthenticated
-    ? useInfiniteMyAwareDiscussions({ pageSize: 15 })
-    : useInfiniteDiscussions({ pageSize: 15 });
+  const myAwareQuery = useInfiniteMyAwareDiscussions({ pageSize: 15 });
+  const publicQuery = useInfiniteDiscussions({ pageSize: 15 });
+  const infiniteQuery = isAuthenticated ? myAwareQuery : publicQuery;
 
   const createDiscussion = useCreateDiscussion();
+  const { mutate: trackStreakActivity } = useTrackStreakActivity();
+  const raw = infiniteQuery.data?.pages.flatMap((p) => p.data) ?? [];
+  const seen = new Set<string>();
+  const discussions = raw.filter((d) => { if (seen.has(d.id)) return false; seen.add(d.id); return true; });
+  const visibleDiscussions = isAuthenticated ? discussions : discussions.slice(0, 3);
+  const totalCount = infiniteQuery.data?.pages[0]?.meta?.total ?? 0;
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const hasTrackedVisitRef = useRef(false);
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
+      if (!isAuthenticated && discussions.length >= 3) return;
       if (entry.isIntersecting && infiniteQuery.hasNextPage && !infiniteQuery.isFetchingNextPage) {
         infiniteQuery.fetchNextPage();
       }
     },
-    [infiniteQuery.hasNextPage, infiniteQuery.isFetchingNextPage, infiniteQuery.fetchNextPage],
+    [isAuthenticated, discussions.length, infiniteQuery.hasNextPage, infiniteQuery.isFetchingNextPage, infiniteQuery.fetchNextPage],
   );
 
   useEffect(() => {
@@ -62,6 +73,24 @@ export default function DiscussionsPage() {
     if (sentinelRef.current) observerRef.current.observe(sentinelRef.current);
     return () => observerRef.current?.disconnect();
   }, [handleObserver]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasTrackedVisitRef.current = false;
+      return;
+    }
+
+    if (hasTrackedVisitRef.current) return;
+
+    hasTrackedVisitRef.current = true;
+    trackStreakActivity({ activityType: 'discussion_visit' });
+
+    const interval = window.setInterval(() => {
+      trackStreakActivity({ activityType: 'active_time', minutes: 5 });
+    }, 5 * 60 * 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isAuthenticated, trackStreakActivity]);
 
   const handleCreate = async () => {
     if (!body.trim()) return;
@@ -75,9 +104,6 @@ export default function DiscussionsPage() {
     setIsAnonymous(true);
     setShowCompose(false);
   };
-
-  const discussions = infiniteQuery.data?.pages.flatMap((p) => p.data) ?? [];
-  const totalCount = infiniteQuery.data?.pages[0]?.meta?.total ?? 0;
 
   return (
     <PublicLayout>
@@ -127,12 +153,12 @@ export default function DiscussionsPage() {
                   <Input
                     placeholder="Title (optional)"
                     value={title}
-                    maxLength={200}
+                    maxLength={FIELD_LIMITS.REVIEW_TITLE}
                     onChange={(e) => setTitle(e.target.value)}
                   />
                   <textarea
                     value={body}
-                    maxLength={2000}
+                    maxLength={FIELD_LIMITS.REPLY_BODY}
                     onChange={(e) => setBody(e.target.value)}
                     rows={4}
                     placeholder="Share your story or question..."
@@ -176,7 +202,7 @@ export default function DiscussionsPage() {
                 <Skeleton key={i} className="h-48 w-full rounded-2xl" />
               ))}
             </div>
-          ) : discussions.length === 0 ? (
+          ) : visibleDiscussions.length === 0 ? (
             <EmptyState
               title="No discussions yet"
               description={
@@ -187,7 +213,7 @@ export default function DiscussionsPage() {
             />
           ) : (
             <div className="space-y-4">
-              {discussions.map((discussion) => (
+              {visibleDiscussions.map((discussion) => (
                 <DiscussionCard
                   key={discussion.id}
                   discussion={discussion}
@@ -195,7 +221,26 @@ export default function DiscussionsPage() {
                 />
               ))}
 
-              {infiniteQuery.isFetchingNextPage && (
+              {!isAuthenticated && discussions.length > 3 && (
+                <Card>
+                  <CardContent className="py-6 text-center">
+                    <p className="text-sm font-semibold text-foreground">Continue the conversation</p>
+                    <p className="mt-1 text-sm text-muted">
+                      Log in to view all discussions, react, and comment.
+                    </p>
+                    <div className="mt-4 flex justify-center gap-2">
+                      <Link href="/auth/login">
+                        <Button size="sm">Log In</Button>
+                      </Link>
+                      <Link href="/auth/register">
+                        <Button size="sm" variant="outline">Sign Up</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {isAuthenticated && infiniteQuery.isFetchingNextPage && (
                 <div className="flex items-center justify-center gap-2 py-6">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="text-sm text-muted">Loading more...</span>
@@ -204,7 +249,7 @@ export default function DiscussionsPage() {
 
               <div ref={sentinelRef} className="h-1" />
 
-              {!infiniteQuery.hasNextPage && discussions.length > 5 && (
+              {isAuthenticated && !infiniteQuery.hasNextPage && discussions.length > 5 && (
                 <div className="flex flex-col items-center gap-2 py-8 text-center">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-light">
                     <Check className="h-5 w-5 text-primary" />
@@ -230,6 +275,11 @@ function DiscussionCard({
   isAuthenticated: boolean;
 }) {
   const [discussion, setDiscussion] = useState(initialDiscussion);
+  const [liveLikeCount, setLiveLikeCount] = useState(initialDiscussion.likeCount);
+  const [liveDislikeCount, setLiveDislikeCount] = useState(initialDiscussion.dislikeCount);
+  const [liveUserReaction, setLiveUserReaction] = useState<'like' | 'dislike' | null>(
+    initialDiscussion.userReaction ?? null,
+  );
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [localComments, setLocalComments] = useState<DiscussionComment[]>(discussion.comments);
   const [comment, setComment] = useState('');
@@ -240,6 +290,15 @@ function DiscussionCard({
 
   const react = useReactDiscussion(discussion.id);
   const addComment = useAddDiscussionComment(discussion.id);
+  const trackStreakActivity = useTrackStreakActivity();
+
+  useEffect(() => {
+    setDiscussion(initialDiscussion);
+    setLiveLikeCount(initialDiscussion.likeCount);
+    setLiveDislikeCount(initialDiscussion.dislikeCount);
+    setLiveUserReaction(initialDiscussion.userReaction ?? null);
+    setLocalComments(initialDiscussion.comments);
+  }, [initialDiscussion]);
 
   useDiscussionSocket(
     discussion.id,
@@ -252,13 +311,57 @@ function DiscussionCard({
       setDiscussion((d) => ({ ...d, commentCount: d.commentCount + 1 }));
     },
     (payload) => {
-      setDiscussion((d) => ({
-        ...d,
-        likeCount: payload.likeCount,
-        dislikeCount: payload.dislikeCount,
-      }));
+      setLiveLikeCount(payload.likeCount);
+      setLiveDislikeCount(payload.dislikeCount);
     },
   );
+
+  const handleReact = (type: 'like' | 'dislike') => {
+    if (!isAuthenticated || react.isPending) return;
+
+    const prevReaction = liveUserReaction;
+    const prevLike = liveLikeCount;
+    const prevDislike = liveDislikeCount;
+
+    if (type === 'like') {
+      if (prevReaction === 'like') {
+        setLiveUserReaction(null);
+        setLiveLikeCount((v) => Math.max(0, v - 1));
+      } else if (prevReaction === 'dislike') {
+        setLiveUserReaction('like');
+        setLiveLikeCount((v) => v + 1);
+        setLiveDislikeCount((v) => Math.max(0, v - 1));
+      } else {
+        setLiveUserReaction('like');
+        setLiveLikeCount((v) => v + 1);
+      }
+    } else {
+      if (prevReaction === 'dislike') {
+        setLiveUserReaction(null);
+        setLiveDislikeCount((v) => Math.max(0, v - 1));
+      } else if (prevReaction === 'like') {
+        setLiveUserReaction('dislike');
+        setLiveDislikeCount((v) => v + 1);
+        setLiveLikeCount((v) => Math.max(0, v - 1));
+      } else {
+        setLiveUserReaction('dislike');
+        setLiveDislikeCount((v) => v + 1);
+      }
+    }
+
+    react.mutate(type, {
+      onSuccess: (result: any) => {
+        if (typeof result?.likeCount === 'number') setLiveLikeCount(result.likeCount);
+        if (typeof result?.dislikeCount === 'number') setLiveDislikeCount(result.dislikeCount);
+        setLiveUserReaction((result?.userReaction as 'like' | 'dislike' | null) ?? null);
+      },
+      onError: () => {
+        setLiveUserReaction(prevReaction);
+        setLiveLikeCount(prevLike);
+        setLiveDislikeCount(prevDislike);
+      },
+    });
+  };
 
   const handleShare = async () => {
     const url = typeof window !== 'undefined' ? `${window.location.href}#${discussion.id}` : '';
@@ -274,6 +377,10 @@ function DiscussionCard({
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 2000);
+    }
+
+    if (isAuthenticated) {
+      trackStreakActivity.mutate({ activityType: 'share' });
     }
   };
 
@@ -355,78 +462,55 @@ function DiscussionCard({
         )}
       </div>
 
-      {/* Engagement stats */}
-      {(discussion.likeCount > 0 || discussion.commentCount > 0) && (
-        <div className="flex items-center gap-3 px-5 pb-2 text-[11px] text-muted">
-          {discussion.likeCount > 0 && (
-            <span>
-              {discussion.likeCount} {discussion.likeCount === 1 ? 'like' : 'likes'}
-            </span>
-          )}
-          {discussion.likeCount > 0 && discussion.commentCount > 0 && (
-            <span className="text-border">·</span>
-          )}
-          {discussion.commentCount > 0 && (
-            <span>
-              {discussion.commentCount} {discussion.commentCount === 1 ? 'comment' : 'comments'}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Action bar */}
-      <div className="flex items-center gap-0.5 border-t border-border/50 px-3 py-1.5">
+      <div className="flex items-center gap-1 border-t border-border/50 px-3 py-1.5">
         <button
-          onClick={() => react.mutate('like')}
+          onClick={() => handleReact('like')}
           disabled={!isAuthenticated || react.isPending}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all active:scale-95',
-            discussion.userReaction === 'like'
+            'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition',
+            liveUserReaction === 'like'
               ? 'bg-primary-light text-primary'
-              : 'text-muted hover:bg-primary-light hover:text-primary',
+              : 'text-muted hover:bg-surface',
             !isAuthenticated && 'cursor-not-allowed opacity-50',
           )}
         >
           <ThumbsUp
-            className={cn('h-4 w-4', discussion.userReaction === 'like' && 'fill-primary')}
+            className={cn('h-3.5 w-3.5', liveUserReaction === 'like' && 'fill-primary')}
           />
-          Like
+          Like {liveLikeCount > 0 ? liveLikeCount : ''}
         </button>
 
         <button
-          onClick={() => react.mutate('dislike')}
+          onClick={() => handleReact('dislike')}
           disabled={!isAuthenticated || react.isPending}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all active:scale-95',
-            discussion.userReaction === 'dislike'
+            'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition',
+            liveUserReaction === 'dislike'
               ? 'bg-accent-light text-accent-dark'
-              : 'text-muted hover:bg-accent-light hover:text-accent-dark',
+              : 'text-muted hover:bg-surface',
             !isAuthenticated && 'cursor-not-allowed opacity-50',
           )}
         >
           <ThumbsDown className="h-3.5 w-3.5" />
+          Dislike {liveDislikeCount > 0 ? liveDislikeCount : ''}
         </button>
 
         <button
           onClick={handleOpenComments}
-          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-muted transition-all hover:bg-surface hover:text-foreground active:scale-95"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-surface"
         >
-          <MessageCircle className="h-4 w-4" />
-          Comment
-          {discussion.commentCount > 0 && (
-            <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
-              {discussion.commentCount}
-            </span>
-          )}
+          <MessageCircle className="h-3.5 w-3.5" />
+          Comment {discussion.commentCount > 0 ? discussion.commentCount : ''}
         </button>
 
         <button
           onClick={handleShare}
-          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-muted transition-all hover:bg-primary-light hover:text-primary active:scale-95"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-surface"
         >
           {shareSuccess ? (
             <>
-              <Check className="h-3.5 w-3.5 text-primary" /> Copied!
+              <Check className="h-3.5 w-3.5" /> Copied
             </>
           ) : (
             <>
@@ -459,7 +543,7 @@ function DiscussionCard({
                     className="flex-1 bg-transparent text-sm placeholder:text-muted outline-none"
                     placeholder="Write a comment..."
                     value={comment}
-                    maxLength={1000}
+                    maxLength={FIELD_LIMITS.COMMENT_BODY}
                     onChange={(e) => setComment(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {

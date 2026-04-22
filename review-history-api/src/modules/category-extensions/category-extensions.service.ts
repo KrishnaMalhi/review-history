@@ -20,7 +20,7 @@ import { PaginatedResponse } from '../../common/dto/pagination.dto';
 const SCHOOL_CATEGORIES = ['school', 'college', 'university', 'madrasa'];
 const MEDICAL_CATEGORIES = ['doctor', 'hospital', 'clinic', 'dentist'];
 const PRODUCT_CATEGORIES = ['food_product', 'product'];
-const EMPLOYER_CATEGORIES = ['employer', 'workplace', 'company'];
+const EMPLOYER_CATEGORIES = ['employer', 'workplace', 'workspace', 'company'];
 
 @Injectable()
 export class CategoryExtensionsService {

@@ -23,6 +23,7 @@ import type {
   ReviewQualityScore,
   BlogPost,
   DiscussionPost,
+  ReviewComment,
 } from '@/types';
 
 function toPaginated<T>(payload: any): PaginatedResponse<T> {
@@ -108,6 +109,21 @@ function mapReview(review: any): Review {
           createdAt: reply.createdAt,
         }))
       : [],
+    comments: Array.isArray(review.comments)
+      ? review.comments.map((comment: any) => ({
+          id: comment.id,
+          body: comment.body,
+          isAnonymous: Boolean(comment.isAnonymous),
+          likeCount: Number(comment.likeCount ?? 0),
+          dislikeCount: Number(comment.dislikeCount ?? 0),
+          createdAt: comment.createdAt,
+          author: {
+            id: comment.author?.id ?? null,
+            displayName: comment.author?.displayName ?? 'Anonymous',
+          },
+        }))
+      : [],
+    commentCount: Number(review.commentCount ?? (Array.isArray(review.comments) ? review.comments.length : 0)),
   };
 }
 
@@ -169,6 +185,8 @@ export type FeedQueryParams = {
   category?: string;
   sort?: 'recent' | 'helpful' | 'trending';
   rating?: number;
+  following?: boolean;
+  mine?: boolean;
 };
 
 export function useInfiniteFeedReviews(params: FeedQueryParams) {
@@ -176,7 +194,9 @@ export function useInfiniteFeedReviews(params: FeedQueryParams) {
   return useInfiniteQuery({
     queryKey: ['feedReviews', params],
     queryFn: async ({ pageParam = 1 }) => {
-      const payload = await apiGet<any>('/reviews/feed', { ...params, page: pageParam, pageSize });
+      const { mine, ...apiParams } = params;
+      const feedPath = mine || params.following ? '/reviews/feed/me' : '/reviews/feed';
+      const payload = await apiGet<any>(feedPath, { ...apiParams, page: pageParam, pageSize });
       return toPaginated<FeedReview>(payload);
     },
     initialPageParam: 1,
@@ -346,6 +366,17 @@ export function useCreateEntity() {
   });
 }
 
+export function useUpdateEntity(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { addressLine?: string; landmark?: string; phone?: string }) =>
+      apiPatch(`/entities/${entityId}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['entity', entityId] });
+    },
+  });
+}
+
 // Create Review
 export function useCreateReview(entityId: string) {
   const qc = useQueryClient();
@@ -407,6 +438,56 @@ export function useCreateReply(reviewId: string) {
   return useMutation({
     mutationFn: (body: string) => apiPost(`/reviews/${reviewId}/replies`, { body }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['entityReviews'] }),
+  });
+}
+
+export function useReviewComments(reviewId: string, params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['reviewComments', reviewId, params],
+    queryFn: async () => {
+      const payload = await apiGet<any>(`/reviews/${reviewId}/comments`, params);
+      const paginated = toPaginated<any>(payload);
+      return {
+        ...paginated,
+        data: paginated.data.map((comment: any) => ({
+          id: comment.id,
+          body: comment.body,
+          isAnonymous: Boolean(comment.isAnonymous),
+          likeCount: Number(comment.likeCount ?? 0),
+          dislikeCount: Number(comment.dislikeCount ?? 0),
+          createdAt: comment.createdAt,
+          author: {
+            id: comment.author?.id ?? null,
+            displayName: comment.author?.displayName ?? 'Anonymous',
+          },
+        })),
+      } as PaginatedResponse<ReviewComment>;
+    },
+    enabled: !!reviewId,
+  });
+}
+
+export function useAddReviewComment(reviewId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { body: string; isAnonymous?: boolean }) =>
+      apiPost(`/reviews/${reviewId}/comments`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feedReviews'] });
+      qc.invalidateQueries({ queryKey: ['reviewComments', reviewId] });
+    },
+  });
+}
+
+export function useReactReviewComment(reviewId: string, commentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (type: 'like' | 'dislike') =>
+      apiPost(`/reviews/${reviewId}/comments/${commentId}/reactions`, { type }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feedReviews'] });
+      qc.invalidateQueries({ queryKey: ['reviewComments', reviewId] });
+    },
   });
 }
 
@@ -574,6 +655,92 @@ export function useCategoryProfile(entityId: string) {
   });
 }
 
+export function useCreateEmployerProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiPost(`/entities/${entityId}/employer-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
+export function useUpdateEmployerProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiPatch(`/entities/${entityId}/employer-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
+export function useCreateSchoolProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiPost(`/category-extensions/entities/${entityId}/school-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
+export function useUpdateSchoolProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiPatch(`/category-extensions/entities/${entityId}/school-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
+export function useCreateMedicalProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiPost(`/category-extensions/entities/${entityId}/medical-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
+export function useUpdateMedicalProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiPatch(`/category-extensions/entities/${entityId}/medical-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
+export function useCreateProductProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiPost(`/category-extensions/entities/${entityId}/product-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
+export function useUpdateProductProfile(entityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiPatch(`/category-extensions/entities/${entityId}/product-profile`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categoryProfile', entityId] });
+    },
+  });
+}
+
 // ── Follows ──
 export function useMyFollows() {
   return useQuery({
@@ -615,10 +782,36 @@ export function useUnfollow() {
 }
 
 // ── Review Streaks ──
+export type StreakActivityType =
+  | 'feed_visit'
+  | 'discussion_visit'
+  | 'community_visit'
+  | 'active_time'
+  | 'add_listing'
+  | 'add_review'
+  | 'like_or_vote'
+  | 'share'
+  | 'follow'
+  | 'discussion_post'
+  | 'discussion_comment'
+  | 'community_validation';
+
 export function useMyStreak() {
   return useQuery({
     queryKey: ['myStreak'],
     queryFn: () => apiGet<ReviewStreak>('/review-streaks/me'),
+  });
+}
+
+export function useTrackStreakActivity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { activityType: StreakActivityType; minutes?: number }) =>
+      apiPost('/review-streaks/activities', data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['myStreak'] });
+      qc.invalidateQueries({ queryKey: ['streakLeaderboard'] });
+    },
   });
 }
 
@@ -758,6 +951,76 @@ export function useCreateInvite() {
   });
 }
 
+// ── Moderation Center ──
+export interface ModerationCaseItem {
+  id: string;
+  objectType: string;
+  objectId: string;
+  triggerType: string;
+  severity: 'low' | 'medium' | 'high' | 'legal_sensitive';
+  status: 'open' | 'in_progress' | 'resolved' | 'appealed' | 'closed';
+  openedAt: string;
+  closedAt: string | null;
+}
+
+export interface ModerationStats {
+  cases: {
+    open: number;
+    inProgress: number;
+    resolved: number;
+    closed: number;
+  };
+  reports: {
+    open: number;
+    triaged: number;
+  };
+  reviews: {
+    underVerification: number;
+    removedByPolicy: number;
+  };
+  velocity: {
+    casesOpenedLast7Days: number;
+    casesResolvedLast7Days: number;
+  };
+  generatedAt: string;
+}
+
+export function useModerationCases(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['moderationCases', params],
+    queryFn: async () => {
+      const payload = await apiGet<any>('/admin/moderation/cases', params);
+      return toPaginated<ModerationCaseItem>(payload);
+    },
+  });
+}
+
+export function useModerationStats() {
+  return useQuery({
+    queryKey: ['moderationStats'],
+    queryFn: () => apiGet<ModerationStats>('/admin/moderation/stats'),
+  });
+}
+
+export function useResolveModerationCase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      caseId,
+      actionType,
+      notes,
+    }: {
+      caseId: string;
+      actionType: 'keep' | 'hide_review' | 'remove_review' | 'close_case';
+      notes?: string;
+    }) => apiPatch(`/admin/moderation/cases/${caseId}/resolve`, { actionType, notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['moderationCases'] });
+      qc.invalidateQueries({ queryKey: ['moderationStats'] });
+    },
+  });
+}
+
 // ── Analytics ──
 export function useEntityAnalytics(entityId: string) {
   return useQuery({
@@ -795,5 +1058,20 @@ export function useDisputeResolution() {
   return useMutation({
     mutationFn: (reviewId: string) => apiPost(`/reviews/${reviewId}/dispute-resolution`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['entityReviews'] }),
+  });
+}
+
+// ── File Upload ──
+export function useUploadFile() {
+  return useMutation({
+    mutationFn: async (file: File): Promise<{ url: string; fileName: string }> => {
+      const { api } = await import('@/lib/api-client');
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return data.data as { url: string; fileName: string };
+    },
   });
 }

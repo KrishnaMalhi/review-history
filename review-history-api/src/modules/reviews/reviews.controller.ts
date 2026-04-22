@@ -8,6 +8,8 @@ import { ListReviewsDto } from './dto/list-reviews.dto';
 import { AdminListReviewsDto } from './dto/admin-list-reviews.dto';
 import { AdminUpdateReviewStatusDto } from './dto/admin-update-review-status.dto';
 import { ReviewFeedQueryDto } from './dto/review-feed-query.dto';
+import { CreateReviewCommentDto } from './dto/create-review-comment.dto';
+import { ReactReviewCommentDto } from './dto/react-review-comment.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser, JwtPayload, Public, Roles } from '../../common/decorators';
@@ -43,7 +45,57 @@ export class ReviewsController {
   @Get('reviews/feed')
   @ApiOperation({ summary: 'Public feed of recent reviews across all entities' })
   getFeed(@Query() query: ReviewFeedQueryDto) {
-    return this.reviewsService.getFeed(query.page, query.pageSize, query.category, query.sort, query.rating);
+    return this.reviewsService.getFeed(query.page, query.pageSize, query.category, query.sort, query.rating, query.following);
+  }
+
+  @Get('reviews/feed/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Authenticated feed with optional following filter' })
+  getMyFeed(@CurrentUser() user: JwtPayload, @Query() query: ReviewFeedQueryDto) {
+    return this.reviewsService.getFeed(
+      query.page,
+      query.pageSize,
+      query.category,
+      query.sort,
+      query.rating,
+      query.following,
+      user.sub,
+    );
+  }
+
+  @Public()
+  @Get('reviews/:id/comments')
+  @ApiOperation({ summary: 'List comments for a review' })
+  getReviewComments(@Param('id') reviewId: string, @Query() query: PaginationDto) {
+    return this.reviewsService.getReviewComments(reviewId, query.page, query.pageSize);
+  }
+
+  @Post('reviews/:id/comments')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('user', 'claimed_owner', 'admin', 'super_admin', 'moderator')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add comment on a review' })
+  addReviewComment(
+    @Param('id') reviewId: string,
+    @Body() dto: CreateReviewCommentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reviewsService.addReviewComment(reviewId, dto, user.sub);
+  }
+
+  @Post('reviews/:id/comments/:commentId/reactions')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('user', 'claimed_owner', 'admin', 'super_admin', 'moderator')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Like/dislike a review comment' })
+  reactReviewComment(
+    @Param('id') reviewId: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: ReactReviewCommentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reviewsService.reactReviewComment(reviewId, commentId, dto, user.sub);
   }
 
   @Patch('reviews/:id')

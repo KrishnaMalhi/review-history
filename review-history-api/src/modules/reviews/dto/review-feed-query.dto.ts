@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsOptional, IsString, MaxLength, Matches, IsIn, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, MaxLength, Matches, IsIn, IsInt, Min, Max, IsBoolean } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
 
@@ -24,4 +24,10 @@ export class ReviewFeedQueryDto extends PaginationDto {
   @Min(1)
   @Max(5)
   rating?: number;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  following?: boolean;
 }

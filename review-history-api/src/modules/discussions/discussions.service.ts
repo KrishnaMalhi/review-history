@@ -8,12 +8,14 @@ import { CreateDiscussionCommentDto } from './dto/create-discussion-comment.dto'
 import { ReactDiscussionDto } from './dto/react-discussion.dto';
 import { DiscussionReactionType, Prisma } from '@prisma/client';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
 
 @Injectable()
 export class DiscussionsService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly realtime?: RealtimeGateway,
+    private readonly reviewStreaks?: ReviewStreaksService,
   ) {}
 
   async list(query: ListDiscussionsDto, currentUserId?: string) {
@@ -100,6 +102,8 @@ export class DiscussionsService {
       },
     });
 
+    await this.reviewStreaks?.recordActivity(userId, 'discussion_post');
+
     return { id: row.id, createdAt: row.createdAt };
   }
 
@@ -147,15 +151,19 @@ export class DiscussionsService {
       data: { likeCount, dislikeCount },
     });
 
+    if (!existing || existing.type !== dto.type) {
+      await this.reviewStreaks?.recordActivity(userId, 'like_or_vote');
+    }
+
+    // Emit real-time reaction update
+    this.realtime?.emitDiscussionReaction(discussionId, likeCount, dislikeCount);
+
     return {
       discussionId,
       likeCount,
       dislikeCount,
       userReaction: userReaction?.type || null,
     };
-
-    // Emit real-time reaction update
-    this.realtime?.emitDiscussionReaction(discussionId, likeCount, dislikeCount);
   }
 
   async addComment(discussionId: string, dto: CreateDiscussionCommentDto, userId: string) {
@@ -183,6 +191,8 @@ export class DiscussionsService {
       where: { id: discussionId },
       data: { commentCount },
     });
+
+    await this.reviewStreaks?.recordActivity(userId, 'discussion_comment');
 
     const result = {
       id: comment.id,

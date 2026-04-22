@@ -1,7 +1,8 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ReviewStreaksService } from './review-streaks.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { TrackActivityDto } from './dto/track-activity.dto';
 
 @Controller('review-streaks')
 export class ReviewStreaksController {
@@ -10,6 +11,12 @@ export class ReviewStreaksController {
   @Get('me')
   async getMyStreak(@CurrentUser() user: any) {
     return this.service.getUserStreak(user.sub);
+  }
+
+  @Post('activities')
+  async trackMyActivity(@CurrentUser() user: any, @Body() dto: TrackActivityDto) {
+    await this.service.recordActivity(user.sub, dto.activityType, dto.minutes ?? 0);
+    return { tracked: true };
   }
 
   @Public()

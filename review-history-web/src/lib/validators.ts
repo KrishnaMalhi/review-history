@@ -15,20 +15,44 @@ export const phoneSchema = z.object({
 export type PhoneInput = z.infer<typeof phoneSchema>;
 
 export const loginSchema = z.object({
-  email: z.string().email('Enter a valid email').max(255),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Email is required')
+    .max(255, 'Email must be at most 255 characters')
+    .email('Enter a valid email'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be at most 128 characters'),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
-  displayName: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  email: z.string().email('Enter a valid email').max(255),
+  displayName: z
+    .string()
+    .trim()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be at most 100 characters'),
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Email is required')
+    .max(255, 'Email must be at most 255 characters')
+    .email('Enter a valid email'),
   phone: z
     .string()
+    .trim()
     .min(1, 'Phone number is required')
-    .max(20)
+    .max(13, 'Phone number must be at most 13 characters')
     .regex(pakistaniPhoneRegex, 'Enter a valid Pakistani mobile number (03xx-xxxxxxx)'),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be at most 128 characters'),
+  acceptLegal: z.boolean().refine((v) => v === true, {
+    message: 'You must accept Terms and Privacy Policy',
+  }),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
@@ -39,6 +63,37 @@ export const otpSchema = z.object({
     .regex(/^\d{6}$/, 'OTP must be numeric'),
 });
 export type OtpInput = z.infer<typeof otpSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Email is required')
+    .max(255, 'Email must be at most 255 characters')
+    .email('Enter a valid email'),
+});
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    code: z
+      .string()
+      .length(6, 'OTP must be 6 digits')
+      .regex(/^\d{6}$/, 'OTP must be numeric'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password must be at most 128 characters'),
+    confirmPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password must be at most 128 characters'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters').max(100).optional(),

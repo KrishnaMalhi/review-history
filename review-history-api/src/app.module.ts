@@ -22,6 +22,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AuditModule } from './modules/audit/audit.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { HealthModule } from './modules/health/health.module';
+import { MailerModule } from './common/mailer/mailer.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import * as path from 'path';
 
 // Platform expansion modules
 import { EmployerProfilesModule } from './modules/employer-profiles/employer-profiles.module';
@@ -66,6 +70,13 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     // Infrastructure
     PrismaModule,
     RedisModule,
+    MailerModule,
+    UploadModule,
+    ServeStaticModule.forRoot({
+      rootPath: path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads'),
+      serveRoot: '/uploads',
+      serveStaticOptions: { index: false },
+    }),
 
     // Feature modules
     AuthModule,

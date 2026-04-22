@@ -9,6 +9,7 @@ import { Button, Input, Select, Card, CardContent } from '@/components/ui';
 import { useCategories, useCities, useLocalities, useCreateEntity } from '@/hooks/use-api';
 import { createEntitySchema, type CreateEntityInput } from '@/lib/validators';
 import { useAuth } from '@/lib/auth-context';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 function useDebounce(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value);
@@ -68,7 +69,6 @@ export default function AddEntityPage() {
     if (cityQuery && cities?.length) {
       const resolved = resolveCityId(cityQuery);
       if (resolved) {
-        setResolvedCityId(resolved);
         setValue('cityId', resolved, { shouldValidate: true });
       }
     }
@@ -118,8 +118,9 @@ export default function AddEntityPage() {
     try {
       const result = await createEntity.mutateAsync(payload as Record<string, unknown>);
       router.push(`/entities/${result.entityId}`);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to create entity.');
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(message || 'Failed to create entity.');
     }
   };
 
@@ -149,7 +150,7 @@ export default function AddEntityPage() {
               <Input
                 label="Entity Name"
                 placeholder="e.g. Dr. Ahmed Ali, Ali's Workshop"
-                maxLength={200}
+                maxLength={FIELD_LIMITS.ENTITY_NAME}
                 {...register('displayName')}
                 error={errors.displayName?.message}
               />
@@ -173,7 +174,7 @@ export default function AddEntityPage() {
                     setValue('cityId', resolved, { shouldValidate: true });
                   }}
                   list="pakistan-city-options"
-                  maxLength={100}
+                  maxLength={FIELD_LIMITS.DISPLAY_NAME}
                   error={errors.cityId?.message}
                 />
                 {citiesLoading && cityQuery.length >= 1 && (
@@ -202,7 +203,7 @@ export default function AddEntityPage() {
               <Input
                 label="Entity Phone (optional)"
                 placeholder="03001234567"
-                maxLength={20}
+                maxLength={FIELD_LIMITS.PHONE}
                 {...register('phone')}
                 error={errors.phone?.message}
               />
@@ -211,7 +212,7 @@ export default function AddEntityPage() {
               <Input
                 label="Address (optional)"
                 placeholder="Street address or location"
-                maxLength={300}
+                maxLength={FIELD_LIMITS.ADDRESS_LINE}
                 {...register('addressLine')}
                 error={errors.addressLine?.message}
               />
@@ -220,7 +221,7 @@ export default function AddEntityPage() {
               <Input
                 label="Landmark (optional)"
                 placeholder="Near / opposite to..."
-                maxLength={200}
+                maxLength={FIELD_LIMITS.LANDMARK}
                 {...register('landmark')}
                 error={errors.landmark?.message}
               />

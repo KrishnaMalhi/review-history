@@ -1,7 +1,14 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { apiGet, apiPost, clearAccessToken, setAccessToken, getAccessToken } from '@/lib/api-client';
+import {
+  apiGet,
+  apiPost,
+  clearAccessToken,
+  setAccessToken,
+  getAccessToken,
+  SESSION_EXPIRED_EVENT,
+} from '@/lib/api-client';
 import type { User, EmailOtpChallengeResponse, VerifyOtpResponse, AuthLoginResponse } from '@/types';
 
 interface RegisterInput {
@@ -9,6 +16,7 @@ interface RegisterInput {
   password: string;
   phone: string;
   displayName?: string;
+  acceptLegal: boolean;
 }
 
 interface AuthContextType {
@@ -47,6 +55,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser().finally(() => setIsLoading(false));
   }, [refreshUser]);
 
+  useEffect(() => {
+    const onSessionExpired = () => {
+      clearAccessToken();
+      setUser(null);
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/login')) {
+        window.location.href = '/auth/login?reason=session_expired';
+      }
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired as EventListener);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired as EventListener);
+  }, []);
+
   const login = async (email: string, password: string): Promise<AuthLoginResponse> => {
     const result = await apiPost<AuthLoginResponse>('/auth/login', { email, password });
     if (!result.requiresVerification && 'accessToken' in result) {
@@ -57,7 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (input: RegisterInput): Promise<EmailOtpChallengeResponse> => {
-    return apiPost<EmailOtpChallengeResponse>('/auth/register', input);
+    return apiPost<EmailOtpChallengeResponse>('/auth/register', {
+      email: input.email,
+      password: input.password,
+      phone: input.phone,
+      displayName: input.displayName,
+      acceptTerms: input.acceptLegal,
+      acceptPrivacy: input.acceptLegal,
+    });
   };
 
   const requestEmailOtp = async (email: string): Promise<EmailOtpChallengeResponse> => {
@@ -77,6 +105,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       clearAccessToken();
       setUser(null);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     }
   };
 

@@ -19,7 +19,7 @@ export class RepliesController {
     @Body() dto: CreateReplyDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.repliesService.create(reviewId, dto, user.sub, user.role);
+    return this.repliesService.create(reviewId, dto, user.sub);
   }
 
   @Delete('replies/:id')

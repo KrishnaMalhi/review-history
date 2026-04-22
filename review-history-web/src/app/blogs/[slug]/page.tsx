@@ -6,7 +6,7 @@ import { ArrowLeft, BookOpen, Calendar, Clock, Share2, Check } from 'lucide-reac
 import { useState } from 'react';
 import { PublicLayout } from '@/components/layout';
 import { useBlog } from '@/hooks/use-api';
-import { formatDate, truncate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Button, Skeleton } from '@/components/ui';
 
 function readingTime(text: string) {
@@ -24,7 +24,9 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
     if (navigator.share) {
       try {
         await navigator.share({ title: blog?.title || 'Blog', text: blog?.excerpt || '', url });
-      } catch { /* cancelled */ }
+      } catch {
+        // canceled
+      }
     } else {
       await navigator.clipboard.writeText(url);
       setShareSuccess(true);
@@ -32,7 +34,8 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
     }
   };
 
-  const mins = readingTime((blog?.excerpt || '') + (blog?.content || ''));
+  const estimated = readingTime((blog?.excerpt || '') + (blog?.content || ''));
+  const readTime = blog?.readTime && blog.readTime > 0 ? blog.readTime : estimated;
 
   return (
     <PublicLayout>
@@ -50,9 +53,13 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
               className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-muted transition-all hover:bg-surface hover:text-foreground active:scale-95"
             >
               {shareSuccess ? (
-                <><Check className="h-4 w-4 text-primary" /> Copied!</>
+                <>
+                  <Check className="h-4 w-4 text-primary" /> Copied!
+                </>
               ) : (
-                <><Share2 className="h-4 w-4" /> Share</>
+                <>
+                  <Share2 className="h-4 w-4" /> Share
+                </>
               )}
             </button>
           )}
@@ -71,42 +78,55 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
           </div>
         ) : (
           <article className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-            {/* Cover */}
-            <div className="flex h-56 items-center justify-center bg-gradient-to-br from-primary/10 via-primary-light to-primary/5 relative overflow-hidden">
+            <div className="relative flex h-56 items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 via-primary-light to-primary/5">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-              <BookOpen className="h-14 w-14 text-primary/30 absolute right-12 top-8 rotate-12" />
-              <div className="relative px-8 text-center max-w-lg">
-                <h1 className="text-2xl font-bold text-foreground leading-snug">{blog.title}</h1>
+              <BookOpen className="absolute right-12 top-8 h-14 w-14 rotate-12 text-primary/30" />
+              <div className="relative max-w-lg px-8 text-center">
+                <h1 className="text-2xl font-bold leading-snug text-foreground">{blog.title}</h1>
               </div>
             </div>
 
             <div className="p-6 sm:p-8">
-              {/* Meta */}
               <div className="mb-5 flex flex-wrap items-center gap-3 text-xs text-muted">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
                   {blog.publishedAt ? formatDate(blog.publishedAt) : formatDate(blog.createdAt)}
                 </span>
-                <span className="text-border">·</span>
+                <span className="text-border">.</span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  {mins} min read
+                  {readTime} min read
                 </span>
-                <span className="text-border">·</span>
+                <span className="text-border">.</span>
                 <span>By {blog.author?.displayName || 'ReviewHistory Team'}</span>
+                {blog.category?.name && (
+                  <>
+                    <span className="text-border">.</span>
+                    <span>{blog.category.name}</span>
+                  </>
+                )}
               </div>
 
               {blog.excerpt && (
-                <blockquote className="mb-6 rounded-xl border-l-4 border-primary bg-primary-light/40 py-3 pl-4 pr-3 text-sm text-foreground/80 italic">
+                <blockquote className="mb-6 rounded-xl border-l-4 border-primary bg-primary-light/40 py-3 pl-4 pr-3 text-sm italic text-foreground/80">
                   {blog.excerpt}
                 </blockquote>
               )}
 
-              <div className="prose prose-sm max-w-none whitespace-pre-line text-foreground/90 leading-relaxed">
+              <div className="prose prose-sm max-w-none whitespace-pre-line leading-relaxed text-foreground/90">
                 {blog.content}
               </div>
 
-              {/* Footer CTA */}
+              {!!blog.tags?.length && (
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {blog.tags.map((tag) => (
+                    <span key={tag.id} className="rounded-full bg-primary-light px-3 py-1 text-xs font-medium text-primary-dark">
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
                 <Link href="/blogs">
                   <Button variant="outline" size="sm" className="gap-1.5">
@@ -118,9 +138,13 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
                   className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-muted transition-all hover:bg-surface hover:text-foreground"
                 >
                   {shareSuccess ? (
-                    <><Check className="h-3.5 w-3.5 text-primary" /> Copied!</>
+                    <>
+                      <Check className="h-3.5 w-3.5 text-primary" /> Copied!
+                    </>
                   ) : (
-                    <><Share2 className="h-3.5 w-3.5" /> Share</>
+                    <>
+                      <Share2 className="h-3.5 w-3.5" /> Share
+                    </>
                   )}
                 </button>
               </div>
@@ -131,5 +155,4 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
     </PublicLayout>
   );
 }
-
 

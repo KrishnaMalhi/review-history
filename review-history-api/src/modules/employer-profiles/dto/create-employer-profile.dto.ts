@@ -60,7 +60,7 @@ export class CreateEmployerProfileDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @MaxLength(100, { each: true })
+  @MaxLength(FIELD_LIMITS.BENEFIT_NAME, { each: true })
   benefits?: string[];
 
   @ApiPropertyOptional({ example: { linkedin: 'https://linkedin.com/company/example' } })

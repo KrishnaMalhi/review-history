@@ -317,6 +317,19 @@ enum DiscussionReactionType {
   @@map("discussion_reaction_type")
 }
 
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  @@map("blog_post_status")
+}
+
+enum ReviewCommentReactionType {
+  like
+  dislike
+  @@map("review_comment_reaction_type")
+}
+
 // ─── USERS & IDENTITY ────────────────────────────────────
 
 model User {
@@ -327,6 +340,9 @@ model User {
   phoneCountryCode String         @default("+92") @map("phone_country_code") @db.VarChar(5)
   isPhoneVerified  Boolean        @default(false) @map("is_phone_verified")
   isEmailVerified  Boolean        @default(false) @map("is_email_verified")
+  termsAcceptedAt  DateTime?      @map("terms_accepted_at")
+  privacyAcceptedAt DateTime?     @map("privacy_accepted_at")
+  legalVersion     String?        @map("legal_version") @db.VarChar(30)
   displayName      String?        @map("display_name") @db.VarChar(100)
   usernameSlug     String?        @unique @map("username_slug") @db.VarChar(100)
   cityId           String?        @map("city_id") @db.Uuid
@@ -367,6 +383,8 @@ model User {
   discussionPosts        DiscussionPost[]
   discussionComments     DiscussionComment[]
   discussionReactions    DiscussionReaction[]
+  reviewComments         ReviewComment[]
+  reviewCommentReactions ReviewCommentReaction[]
 
   @@index([status])
   @@map("users")
@@ -680,6 +698,7 @@ model Review {
   notHelpfulCount Int             @default(0) @map("not_helpful_count")
   fakeVoteCount   Int             @default(0) @map("fake_vote_count")
   underVerification Boolean       @default(false) @map("under_verification")
+  evidenceUrls    String[]        @default([]) @map("evidence_urls")
   publishedAt     DateTime?       @map("published_at")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
@@ -692,6 +711,7 @@ model Review {
   votes    ReviewVote[]
   reports  ReviewReport[]
   replies  ReviewReply[]
+  comments ReviewComment[]
   // Platform expansion relations
   workplaceData        WorkplaceReviewData?
   schoolData           SchoolReviewData?
@@ -778,6 +798,44 @@ model ReviewReply {
 
   @@index([reviewId])
   @@map("review_replies")
+}
+
+model ReviewComment {
+  id           String   @id @default(uuid()) @db.Uuid
+  reviewId     String   @map("review_id") @db.Uuid
+  authorUserId String   @map("author_user_id") @db.Uuid
+  body         String   @db.Text
+  isAnonymous  Boolean  @default(false) @map("is_anonymous")
+  likeCount    Int      @default(0) @map("like_count")
+  dislikeCount Int      @default(0) @map("dislike_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  review    Review                 @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  author    User                   @relation(fields: [authorUserId], references: [id])
+  reactions ReviewCommentReaction[]
+
+  @@index([reviewId, createdAt(sort: Desc)])
+  @@index([authorUserId])
+  @@map("review_comments")
+}
+
+model ReviewCommentReaction {
+  id        String                    @id @default(uuid()) @db.Uuid
+  commentId String                    @map("comment_id") @db.Uuid
+  userId    String                    @map("user_id") @db.Uuid
+  type      ReviewCommentReactionType @map("type")
+  createdAt DateTime                  @default(now()) @map("created_at")
+  updatedAt DateTime                  @updatedAt @map("updated_at")
+
+  comment ReviewComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId], name: "one_comment_reaction_per_user")
+  @@index([commentId])
+  @@index([userId])
+  @@map("review_comment_reactions")
 }
 
 // ─── MODERATION ───────────────────────────────────────────
@@ -1323,8 +1381,23 @@ model ReviewStreak {
   currentStreak   Int      @default(0) @map("current_streak")
   longestStreak   Int      @default(0) @map("longest_streak")
   lastReviewDate  DateTime? @map("last_review_date")
+  lastActiveDate  DateTime? @map("last_active_date")
   weeklyCount     Int      @default(0) @map("weekly_count")
   weekStartDate   DateTime? @map("week_start_date")
+  totalPoints     Int      @default(0) @map("total_points")
+  activeDaysCount Int      @default(0) @map("active_days_count")
+  feedVisitCount  Int      @default(0) @map("feed_visit_count")
+  discussionVisitCount Int @default(0) @map("discussion_visit_count")
+  communityVisitCount Int  @default(0) @map("community_visit_count")
+  activeMinutes   Int      @default(0) @map("active_minutes")
+  listingsAddedCount Int   @default(0) @map("listings_added_count")
+  reviewsAddedCount Int    @default(0) @map("reviews_added_count")
+  followsCount    Int      @default(0) @map("follows_count")
+  sharesCount     Int      @default(0) @map("shares_count")
+  discussionPostsCount Int @default(0) @map("discussion_posts_count")
+  discussionCommentsCount Int @default(0) @map("discussion_comments_count")
+  likesCount      Int      @default(0) @map("likes_count")
+  validationsCount Int     @default(0) @map("validations_count")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id])
@@ -1403,24 +1476,68 @@ model ResponseTemplate {
 // —— BLOGS ————————————————————————————————————————————————————————————————
 
 model BlogPost {
-  id          String   @id @default(uuid()) @db.Uuid
-  authorUserId String  @map("author_user_id") @db.Uuid
-  title       String   @db.VarChar(200)
-  slug        String   @unique @db.VarChar(220)
-  excerpt     String?  @db.VarChar(500)
-  content     String   @db.Text
-  coverImage  String?  @map("cover_image") @db.VarChar(500)
-  isPublished Boolean  @default(false) @map("is_published")
-  publishedAt DateTime? @map("published_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  id              String         @id @default(uuid()) @db.Uuid
+  authorUserId    String         @map("author_user_id") @db.Uuid
+  categoryId      String?        @map("category_id") @db.Uuid
+  title           String         @db.VarChar(200)
+  slug            String         @unique @db.VarChar(220)
+  excerpt         String?        @db.Text
+  content         String         @db.Text
+  coverImage      String?        @map("cover_image") @db.VarChar(500)
+  featuredImage   String?        @map("featured_image") @db.VarChar(500)
+  status          BlogPostStatus @default(DRAFT)
+  isPublished     Boolean        @default(false) @map("is_published")
+  publishedAt     DateTime?      @map("published_at")
+  readTime        Int?           @map("read_time")
+  views           Int            @default(0)
+  metaTitle       String?        @map("meta_title") @db.VarChar(200)
+  metaDescription String?        @map("meta_description") @db.Text
+  seoTitle        String?        @map("seo_title") @db.VarChar(200)
+  seoDescription  String?        @map("seo_description") @db.Text
+  keywords        String[]       @default([])
+  ogImageUrl      String?        @map("og_image_url") @db.VarChar(500)
+  canonicalUrl    String?        @map("canonical_url") @db.VarChar(500)
+  authorName      String?        @map("author_name") @db.VarChar(150)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  deletedAt       DateTime?      @map("deleted_at")
 
-  author User @relation(fields: [authorUserId], references: [id])
+  author   User         @relation(fields: [authorUserId], references: [id])
+  category BlogCategory? @relation(fields: [categoryId], references: [id])
+  tags     BlogTag[]
 
+  @@index([status, publishedAt(sort: Desc)])
   @@index([isPublished, publishedAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+  @@index([categoryId])
   @@map("blog_posts")
+}
+
+model BlogCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(120)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  blogPosts BlogPost[]
+
+  @@index([slug])
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(100)
+  slug      String   @unique @db.VarChar(120)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  blogPosts BlogPost[]
+
+  @@index([slug])
+  @@map("blog_tags")
 }
 
 // —— DISCUSSIONS ————————————————————————————————————————————————————————

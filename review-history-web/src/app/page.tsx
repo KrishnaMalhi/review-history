@@ -8,6 +8,7 @@ import { Button, Card, CardContent } from '@/components/ui';
 import { useCategories } from '@/hooks/use-api';
 import { CategoryIcon } from '@/components/shared/category-icon';
 import Link from 'next/link';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 const features = [
   {
@@ -100,6 +101,7 @@ export default function HomePage() {
               <input
                 type="text"
                 value={query}
+                maxLength={FIELD_LIMITS.SEARCH_Q}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for a company or category..."
                 className="w-full border-0 bg-transparent py-4.5 pl-13 pr-4 text-foreground placeholder:text-muted focus:outline-none"

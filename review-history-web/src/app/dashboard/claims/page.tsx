@@ -25,6 +25,9 @@ export default function MyClaimsPage() {
           <p className="mt-1 text-sm text-gray-500">
             Track the status of your entity ownership claims
           </p>
+          <p className="mt-1 text-xs text-gray-400">
+            Approved claim flow: open the entity owner dashboard to set up profile details and reply to reviews.
+          </p>
         </div>
 
         {isLoading ? (
@@ -66,6 +69,22 @@ export default function MyClaimsPage() {
                       <Icon className={cn('mr-1 h-3 w-3')} />
                       {cfg.label}
                     </Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      href={`/entities/${claim.entityId}`}
+                      className="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Open Entity Page
+                    </Link>
+                    {claim.status === 'approved' && (
+                      <Link
+                        href={`/entities/${claim.entityId}/owner-dashboard`}
+                        className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+                      >
+                        Manage Profile & Replies
+                      </Link>
+                    )}
                   </div>
                 </Card>
               );

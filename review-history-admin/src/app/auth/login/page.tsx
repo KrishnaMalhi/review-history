@@ -1,18 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/lib/auth-context';
 import { adminLoginSchema, type AdminLoginInput } from '@/lib/validators';
 import { Button, Input, Card, CardContent } from '@/components/ui';
+import { Eye, EyeOff } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api-client';
+import Link from 'next/link';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const reason = searchParams.get('reason');
+  const reset = searchParams.get('reset');
 
   const {
     register,
@@ -28,8 +36,8 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
       router.replace('/');
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Invalid email or password.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Invalid email or password.'));
     } finally {
       setLoading(false);
     }
@@ -83,25 +91,47 @@ export default function LoginPage() {
             <div className="h-1 gradient-primary" />
             <CardContent className="pt-6">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {reason === 'session_expired' && (
+                  <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 ring-1 ring-amber-200/50">
+                    Your admin session expired. Please log in again.
+                  </p>
+                )}
+                {reset === 'success' && (
+                  <p className="rounded-xl bg-green-50 p-3 text-sm text-green-800 ring-1 ring-green-200/50">
+                    Password reset successful. You can now log in.
+                  </p>
+                )}
                 <Input
                   label="Email"
                   type="email"
                   placeholder="admin@reviewhistory.pk"
                   autoComplete="email"
-                  maxLength={255}
+                  maxLength={FIELD_LIMITS.EMAIL}
                   {...register('email')}
                   error={errors.email?.message}
                 />
 
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  maxLength={128}
-                  {...register('password')}
-                  error={errors.password?.message}
-                />
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-foreground">Password</span>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      maxLength={FIELD_LIMITS.PASSWORD}
+                      {...register('password')}
+                      className="block w-full rounded-xl border border-border bg-white px-3.5 py-2.5 pr-10 text-sm placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:bg-surface hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.password?.message && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+                </label>
 
                 {error && (
                   <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600 ring-1 ring-red-200/50">{error}</p>
@@ -111,6 +141,11 @@ export default function LoginPage() {
                   Login
                 </Button>
               </form>
+              <p className="mt-3 text-center text-sm text-muted">
+                <Link href="/auth/forgot-password" className="text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </p>
             </CardContent>
           </Card>
         </div>

@@ -7,10 +7,16 @@ import { PublicLayout } from '@/components/layout';
 import { useBlogs } from '@/hooks/use-api';
 import { formatDate, cn } from '@/lib/utils';
 import { Button, EmptyState, Input, Skeleton } from '@/components/ui';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 function readingTime(text: string) {
   const words = text?.trim().split(/\s+/).length || 0;
   return Math.max(1, Math.round(words / 200));
+}
+
+function getReadTime(blog: { readTime?: number | null; excerpt?: string | null; content?: string }) {
+  if (blog.readTime && blog.readTime > 0) return blog.readTime;
+  return readingTime((blog.excerpt || '') + (blog.content || ''));
 }
 
 const CARD_GRADIENTS = [
@@ -52,6 +58,7 @@ export default function BlogsPage() {
                 className="pl-9"
                 placeholder="Search blogs..."
                 value={q}
+                maxLength={FIELD_LIMITS.SEARCH_Q}
                 onChange={(e) => {
                   setQ(e.target.value);
                   setPage(1);
@@ -96,7 +103,7 @@ export default function BlogsPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
-                            {readingTime((data.data[0].excerpt || '') + (data.data[0].content || ''))} min read
+                            {getReadTime(data.data[0])} min read
                           </span>
                         </div>
                         <span className="inline-flex items-center gap-1 font-medium text-primary">
@@ -126,6 +133,9 @@ export default function BlogsPage() {
                       </div>
                       <div className="p-4">
                         <p className="line-clamp-2 text-xs text-muted">{blog.excerpt || 'Read the full article for details.'}</p>
+                        {blog.category?.name && (
+                          <div className="mt-2 text-[11px] font-medium text-primary">{blog.category.name}</div>
+                        )}
                         <div className="mt-3 flex items-center justify-between text-[11px] text-muted">
                           <div className="flex items-center gap-2">
                             <span className="flex items-center gap-0.5">
@@ -134,7 +144,7 @@ export default function BlogsPage() {
                             </span>
                             <span className="flex items-center gap-0.5">
                               <Clock className="h-3 w-3" />
-                              {readingTime((blog.excerpt || '') + (blog.content || ''))} min
+                              {getReadTime(blog)} min
                             </span>
                           </div>
                           <span className="font-medium text-primary">Read →</span>
@@ -170,6 +180,3 @@ export default function BlogsPage() {
     </PublicLayout>
   );
 }
-
-
-

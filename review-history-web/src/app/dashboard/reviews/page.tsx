@@ -8,6 +8,7 @@ import { Card, Badge, Skeleton, Button } from '@/components/ui';
 import { useMyReviews, useUpdateReview, useDeleteReview } from '@/hooks/use-api';
 import { useToast } from '@/components/shared/toast';
 import { cn } from '@/lib/utils';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 export default function MyReviewsPage() {
   const [page, setPage] = useState(1);
@@ -126,12 +127,14 @@ function ReviewItem({ review }: { review: any }) {
               <input
                 type="text"
                 value={editTitle}
+                maxLength={FIELD_LIMITS.REVIEW_TITLE}
                 onChange={(e) => setEditTitle(e.target.value)}
                 className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
                 placeholder="Review title"
               />
               <textarea
                 value={editBody}
+                maxLength={FIELD_LIMITS.REVIEW_BODY}
                 onChange={(e) => setEditBody(e.target.value)}
                 rows={3}
                 className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"

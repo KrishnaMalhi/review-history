@@ -11,6 +11,7 @@ import { useCities } from '@/hooks/use-api';
 import { updateProfileSchema, type UpdateProfileInput } from '@/lib/validators';
 import { apiPatch } from '@/lib/api-client';
 import { formatDate, getInitials } from '@/lib/utils';
+import { FIELD_LIMITS } from '@shared/field-limits';
 
 function trustLevelColor(level: string) {
   switch (level) {
@@ -204,7 +205,7 @@ export default function DashboardProfilePage() {
                       <Input
                         label="Display Name"
                         placeholder="Your public name"
-                        maxLength={100}
+                        maxLength={FIELD_LIMITS.DISPLAY_NAME}
                         {...register('displayName')}
                         error={errors.displayName?.message}
                       />
@@ -218,7 +219,7 @@ export default function DashboardProfilePage() {
                           setValue('city', next, { shouldValidate: true });
                         }}
                         list="profile-city-options"
-                        maxLength={100}
+                        maxLength={FIELD_LIMITS.DISPLAY_NAME}
                         error={errors.city?.message}
                       />
                       <datalist id="profile-city-options">
@@ -232,7 +233,7 @@ export default function DashboardProfilePage() {
                       <textarea
                         {...register('bio')}
                         placeholder="Tell others about yourself..."
-                        maxLength={500}
+                        maxLength={FIELD_LIMITS.BIO}
                         rows={3}
                         className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-foreground placeholder:text-muted/50 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />

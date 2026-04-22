@@ -6,6 +6,7 @@ import { Button } from '@/components/ui';
 import { useMyFollows, useFollowEntity, useUnfollow } from '@/hooks/use-api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/shared/toast';
+import { getApiErrorMessage } from '@/lib/api-client';
 
 export function FollowButton({ entityId, entityName }: { entityId: string; entityName?: string }) {
   const { isAuthenticated } = useAuth();
@@ -27,7 +28,7 @@ export function FollowButton({ entityId, entityName }: { entityId: string; entit
           toast.success('Now following — you\'ll get updates');
           setShowModal(false);
         },
-        onError: () => toast.error('Failed to follow'),
+        onError: (error) => toast.error(getApiErrorMessage(error, 'Failed to follow')),
       },
     );
   };
@@ -43,7 +44,7 @@ export function FollowButton({ entityId, entityName }: { entityId: string; entit
             { targetType: 'entity', targetId: entityId },
             {
               onSuccess: () => toast.success('Unfollowed'),
-              onError: () => toast.error('Failed to unfollow'),
+              onError: (error) => toast.error(getApiErrorMessage(error, 'Failed to unfollow')),
             },
           )
         }
@@ -90,7 +91,7 @@ export function FollowButton({ entityId, entityName }: { entityId: string; entit
                 <MessageSquare className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-blue-900">New Reviews</p>
-                  <p className="text-xs text-blue-700">Be the first to see new reviews as they're posted</p>
+                  <p className="text-xs text-blue-700">Be the first to see new reviews as they&apos;re posted</p>
                 </div>
               </div>
 

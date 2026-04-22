@@ -67,6 +67,57 @@ export class ModerationService {
     };
   }
 
+  async getTransparencyStats() {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      openCases,
+      inProgressCases,
+      resolvedCases,
+      closedCases,
+      reportsOpen,
+      reportsTriaged,
+      underVerificationReviews,
+      removedByPolicyReviews,
+      newCasesLast7Days,
+      resolvedLast7Days,
+    ] = await Promise.all([
+      this.prisma.moderationCase.count({ where: { status: 'open' } }),
+      this.prisma.moderationCase.count({ where: { status: 'in_progress' } }),
+      this.prisma.moderationCase.count({ where: { status: 'resolved' } }),
+      this.prisma.moderationCase.count({ where: { status: 'closed' } }),
+      this.prisma.reviewReport.count({ where: { status: 'open' } }),
+      this.prisma.reviewReport.count({ where: { status: 'triaged' } }),
+      this.prisma.review.count({ where: { status: 'under_verification', deletedAt: null } }),
+      this.prisma.review.count({ where: { moderationState: 'removed_by_policy' } }),
+      this.prisma.moderationCase.count({ where: { openedAt: { gte: sevenDaysAgo } } }),
+      this.prisma.moderationCase.count({ where: { closedAt: { gte: sevenDaysAgo } } }),
+    ]);
+
+    return {
+      cases: {
+        open: openCases,
+        inProgress: inProgressCases,
+        resolved: resolvedCases,
+        closed: closedCases,
+      },
+      reports: {
+        open: reportsOpen,
+        triaged: reportsTriaged,
+      },
+      reviews: {
+        underVerification: underVerificationReviews,
+        removedByPolicy: removedByPolicyReviews,
+      },
+      velocity: {
+        casesOpenedLast7Days: newCasesLast7Days,
+        casesResolvedLast7Days: resolvedLast7Days,
+      },
+      generatedAt: now.toISOString(),
+    };
+  }
+
   async resolveCase(caseId: string, dto: ResolveCaseDto, adminUserId: string) {
     const modCase = await this.prisma.moderationCase.findFirst({
       where: { id: caseId, status: { notIn: ['resolved', 'closed'] } },
