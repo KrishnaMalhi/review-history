@@ -1,7 +1,27 @@
-import { IsString, IsNotEmpty, IsInt, Min, Max, IsOptional, IsArray, MaxLength, Matches, ValidateNested, IsObject, IsUrl } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  Min,
+  Max,
+  IsOptional,
+  IsArray,
+  MaxLength,
+  Matches,
+  ValidateNested,
+  IsObject,
+  IsUrl,
+  Length,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { FIELD_LIMITS } from '../../../common/constants/field-limits';
+import {
+  MedicalReviewDataDto,
+  ProductReviewDataDto,
+  SchoolReviewDataDto,
+  WorkplaceReviewDataDto,
+} from '../../category-extensions/dto/category-review-data.dto';
 
 export class CreateReviewDto {
   @ApiProperty({ example: 3, minimum: 1, maximum: 5 })
@@ -54,6 +74,36 @@ export class CreateReviewDto {
   @IsOptional()
   @IsObject()
   categoryData?: Record<string, any>;
+
+  @ApiPropertyOptional({ description: 'Invite token from /r/:token route' })
+  @IsOptional()
+  @IsString()
+  @Length(64, 64)
+  inviteToken?: string;
+
+  @ApiPropertyOptional({ type: WorkplaceReviewDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WorkplaceReviewDataDto)
+  workplace?: WorkplaceReviewDataDto;
+
+  @ApiPropertyOptional({ type: SchoolReviewDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SchoolReviewDataDto)
+  school?: SchoolReviewDataDto;
+
+  @ApiPropertyOptional({ type: MedicalReviewDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MedicalReviewDataDto)
+  medical?: MedicalReviewDataDto;
+
+  @ApiPropertyOptional({ type: ProductReviewDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProductReviewDataDto)
+  product?: ProductReviewDataDto;
 
   @ApiPropertyOptional({
     description: 'URLs of supporting evidence files (uploaded via POST /upload). Max 5 items.',

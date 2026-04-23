@@ -15,14 +15,29 @@ import { ListReviewsDto } from './dto/list-reviews.dto';
 import { CreateReviewCommentDto } from './dto/create-review-comment.dto';
 import { ReactReviewCommentDto } from './dto/react-review-comment.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
-import { PaginatedResponse } from '../../common/dto/pagination.dto';
+import { CursorPaginatedResponse, PaginatedResponse } from '../../common/dto/pagination.dto';
 import { Prisma, ReviewCommentReactionType } from '@prisma/client';
 import { CategoryExtensionsService } from '../category-extensions/category-extensions.service';
 import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
-import { ReviewQualityService } from '../review-quality/review-quality.service';
-import { BadgesService } from '../badges/badges.service';
-import { ResponseMetricsService } from '../response-metrics/response-metrics.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { ReviewInvitesService } from '../review-invites/review-invites.service';
+import { JobsService } from '../jobs/jobs.service';
+import {
+  MEDICAL_CATEGORY_KEYS,
+  PRODUCT_CATEGORY_KEYS,
+  SCHOOL_CATEGORY_KEYS,
+  WORKPLACE_CATEGORY_KEYS,
+} from '../../common/constants/category-keys';
+import { ReviewFeedQueryDto } from './dto/review-feed-query.dto';
+
+const MEDICAL_FLAG_PATTERNS = [
+  'cured my',
+  'guaranteed',
+  'miracle',
+  'treatment for cancer',
+  'alternative medicine',
+  'refused service',
+];
 
 @Injectable()
 export class ReviewsService {
@@ -33,9 +48,8 @@ export class ReviewsService {
     private readonly redis: RedisService,
     private readonly categoryExtensions: CategoryExtensionsService,
     private readonly reviewStreaks: ReviewStreaksService,
-    private readonly reviewQuality: ReviewQualityService,
-    private readonly badges: BadgesService,
-    private readonly responseMetrics: ResponseMetricsService,
+    private readonly reviewInvites: ReviewInvitesService,
+    private readonly jobs: JobsService,
     @Optional() private readonly realtime?: RealtimeGateway,
   ) {}
 
@@ -46,6 +60,11 @@ export class ReviewsService {
       include: { category: { select: { key: true } } },
     });
     if (!entity) throw new NotFoundException('Entity not found');
+    const categoryKey = entity.category?.key ?? '';
+
+    if (entity.claimedUserId && entity.claimedUserId === userId) {
+      throw new ForbiddenException('Entity owners cannot review their own entities');
+    }
 
     // Step 2: Check one-review-per-entity eligibility
     const existingReview = await this.prisma.review.findFirst({
@@ -64,10 +83,10 @@ export class ReviewsService {
     if (currentCount === 1) {
       await this.redis.expire(rateLimitKey, 86400);
     }
-    if (currentCount > 5) {
+    if (currentCount > 10) {
       throw new BadRequestException({
         code: 'REVIEW_RATE_LIMIT',
-        message: 'You can submit a maximum of 5 reviews per day.',
+        message: 'You can submit a maximum of 10 reviews per day.',
       });
     }
 
@@ -76,7 +95,13 @@ export class ReviewsService {
     const sanitizedBody = sanitizeInput(dto.body);
 
     // Step 5: Basic content rules check
-    const riskState = await this.assessRisk(sanitizedBody, userId);
+    let riskState = await this.assessRisk(sanitizedBody, userId);
+    if (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any)) {
+      const lowerBody = sanitizedBody.toLowerCase();
+      if (MEDICAL_FLAG_PATTERNS.some((pattern) => lowerBody.includes(pattern))) {
+        riskState = 'under_verification';
+      }
+    }
 
     // Step 6: Resolve tag IDs
     let tagLinks: { tagId: string; intensity?: number }[] = [];
@@ -116,25 +141,27 @@ export class ReviewsService {
     });
 
     // Step 8: Store category-specific extension data
-    if (dto.categoryData && Object.keys(dto.categoryData).length > 0) {
-      const categoryKey = entity.category?.key;
-      if (categoryKey) {
-        try {
-          await this.categoryExtensions.createReviewData(
-            review.id,
-            categoryKey,
-            dto.categoryData,
-          );
-        } catch (err: any) {
-          this.logger.warn(
-            `Failed to store category data for review ${review.id}: ${err.message}`,
-          );
-        }
+    const extensionData =
+      dto.categoryData
+      || (WORKPLACE_CATEGORY_KEYS.includes(categoryKey as any) ? dto.workplace : undefined)
+      || (SCHOOL_CATEGORY_KEYS.includes(categoryKey as any) ? dto.school : undefined)
+      || (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any) ? dto.medical : undefined)
+      || (PRODUCT_CATEGORY_KEYS.includes(categoryKey as any) ? dto.product : undefined);
+
+    if (extensionData && Object.keys(extensionData).length > 0) {
+      try {
+        await this.categoryExtensions.createReviewData(review.id, categoryKey, extensionData);
+      } catch (err: any) {
+        this.logger.warn(`Failed to store category data for review ${review.id}: ${err.message}`);
       }
     }
 
     // Step 9: Update entity aggregates
     await this.updateEntityAggregates(entityId);
+
+    if (dto.inviteToken && review.status === 'published') {
+      await this.reviewInvites.recordConversion(dto.inviteToken);
+    }
 
     // Step 10: Post-creation hooks (non-blocking)
     this.postReviewCreationHooks(review.id, userId, entityId).catch((err) =>
@@ -173,27 +200,31 @@ export class ReviewsService {
   }
 
   async findByEntity(entityId: string, query: ListReviewsDto) {
-    const page = query.page || 1;
-    const pageSize = query.pageSize || 20;
-    const skip = (page - 1) * pageSize;
+    const limit = query.limit || query.pageSize || 20;
+    const cursorId = query.cursor;
 
-    const where: Prisma.ReviewWhereInput = {
+    const baseWhere: Prisma.ReviewWhereInput = {
       entityId,
       deletedAt: null,
       status: { in: ['published', 'under_verification'] },
     };
 
-    let orderBy: Prisma.ReviewOrderByWithRelationInput = { createdAt: 'desc' };
-    if (query.sort === 'highest') orderBy = { overallRating: 'desc' };
-    if (query.sort === 'lowest') orderBy = { overallRating: 'asc' };
-    if (query.sort === 'helpful') orderBy = { helpfulCount: 'desc' };
+    let orderBy: Prisma.ReviewOrderByWithRelationInput[] = [{ createdAt: 'desc' }, { id: 'desc' }];
+    if (query.sort === 'highest') orderBy = [{ overallRating: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }];
+    if (query.sort === 'lowest') orderBy = [{ overallRating: 'asc' }, { createdAt: 'desc' }, { id: 'desc' }];
+    if (query.sort === 'helpful') orderBy = [{ helpfulCount: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }];
+
+    const cursorWhere = await this.buildReviewCursorWhere(
+      cursorId,
+      query.sort as 'newest' | 'highest' | 'lowest' | 'helpful' | undefined,
+    );
+    const where: Prisma.ReviewWhereInput = cursorWhere ? { AND: [baseWhere, cursorWhere] } : baseWhere;
 
     const [reviews, total] = await Promise.all([
       this.prisma.review.findMany({
         where,
         orderBy,
-        skip,
-        take: pageSize,
+        take: limit + 1,
         include: {
           author: { select: { id: true, displayName: true, trustLevel: true } },
           tagLinks: {
@@ -206,10 +237,13 @@ export class ReviewsService {
           },
         },
       }),
-      this.prisma.review.count({ where }),
+      this.prisma.review.count({ where: baseWhere }),
     ]);
 
-    const items = reviews.map((r) => ({
+    const hasNext = reviews.length > limit;
+    const pageRows = hasNext ? reviews.slice(0, limit) : reviews;
+
+    const items = pageRows.map((r) => ({
       id: r.id,
       overallRating: r.overallRating,
       title: r.title,
@@ -246,7 +280,8 @@ export class ReviewsService {
       })),
     }));
 
-    return new PaginatedResponse(items, total, page, pageSize);
+    const nextCursor = hasNext ? pageRows[pageRows.length - 1]?.id ?? null : null;
+    return new CursorPaginatedResponse(items, nextCursor, total);
   }
 
   async update(reviewId: string, dto: UpdateReviewDto, userId: string) {
@@ -472,21 +507,19 @@ export class ReviewsService {
     return { reviewId: updated.id, status: updated.status };
   }
 
-  async getFeed(
-    page: number = 1,
-    pageSize: number = 20,
-    category?: string,
-    sort: 'recent' | 'helpful' | 'trending' = 'recent',
-    rating?: number,
-    following?: boolean,
-    userId?: string,
-  ) {
-    const skip = (page - 1) * pageSize;
+  async getFeed(query: ReviewFeedQueryDto, userId?: string) {
+    const limit = query.limit || query.pageSize || 20;
+    const category = query.category;
+    const sort = query.sort || 'recommended';
+    const rating = query.rating;
+    const following = query.following;
+    const cursor = query.cursor;
+
     let followedEntityIds: string[] | undefined;
 
     if (following) {
       if (!userId) {
-        return new PaginatedResponse([], 0, page, pageSize);
+        return new CursorPaginatedResponse([], null, 0);
       }
 
       const follows = await this.prisma.follow.findMany({
@@ -496,18 +529,11 @@ export class ReviewsService {
       followedEntityIds = follows.map((f) => f.targetId);
 
       if (followedEntityIds.length === 0) {
-        return new PaginatedResponse([], 0, page, pageSize);
+        return new CursorPaginatedResponse([], null, 0);
       }
     }
 
-    const orderBy: Prisma.ReviewOrderByWithRelationInput[] =
-      sort === 'helpful'
-        ? [{ helpfulCount: 'desc' }, { publishedAt: 'desc' }]
-        : sort === 'trending'
-          ? [{ helpfulCount: 'desc' }, { publishedAt: 'desc' }]
-          : [{ publishedAt: 'desc' }];
-
-    const where: Prisma.ReviewWhereInput = {
+    const baseWhere: Prisma.ReviewWhereInput = {
       deletedAt: null,
       status: 'published',
       ...(rating ? { overallRating: { gte: rating } } : {}),
@@ -519,14 +545,17 @@ export class ReviewsService {
       },
     };
 
-    const [reviews, total] = await Promise.all([
-      this.prisma.review.findMany({
-        where,
-        orderBy,
-        skip,
-        take: pageSize,
+    let reviews: any[] = [];
+    let total = 0;
+
+    if (sort === 'recommended') {
+      const pool = await this.prisma.review.findMany({
+        where: baseWhere,
+        take: 500,
+        orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
         include: {
           author: { select: { id: true, displayName: true, trustLevel: true } },
+          qualityScore: { select: { totalScore: true } },
           ...(userId
             ? {
                 votes: {
@@ -546,6 +575,10 @@ export class ReviewsService {
               addressLine: true,
               category: { select: { key: true, nameEn: true, icon: true } },
               city: { select: { nameEn: true } },
+              employerProfile: { select: { isVerified: true } },
+              schoolProfile: { select: { isVerified: true } },
+              medicalProfile: { select: { isVerified: true } },
+              productProfile: { select: { isVerified: true } },
             },
           },
           tagLinks: {
@@ -567,11 +600,110 @@ export class ReviewsService {
             select: { comments: true },
           },
         },
-      }),
-      this.prisma.review.count({ where }),
-    ]);
+      });
 
-    const items = reviews.map((r) => ({
+      total = pool.length;
+      const now = Date.now();
+      const followedSet = new Set(followedEntityIds || []);
+      const scored = pool.map((r) => {
+        const publishedAt = r.publishedAt ? r.publishedAt.getTime() : r.createdAt.getTime();
+        const ageSec = Math.max(0, (now - publishedAt) / 1000);
+        const recencyScore = Math.max(0, 1 - ageSec / 7776000);
+        const qualityScore = Number(r.qualityScore?.totalScore ?? 0);
+        const entityTrustScore = Math.max(0, Math.min(1, (r.entity.trustScore || 0) / 100));
+        const helpfulRatio = r.helpfulCount / Math.max(1, r.helpfulCount + r.notHelpfulCount);
+        const isVerified =
+          r.entity.employerProfile?.isVerified
+          || r.entity.schoolProfile?.isVerified
+          || r.entity.medicalProfile?.isVerified
+          || r.entity.productProfile?.isVerified;
+        const hasOwnerReply = r.replies.some((x: any) => x.authorRole === 'claimed_owner');
+        const responseBonus = (isVerified ? 0.05 : 0) + (hasOwnerReply ? 0.05 : 0);
+        const followBonus = userId && followedSet.has(r.entity.id) ? 0.1 : 0;
+
+        const feedScore =
+          recencyScore * 0.35
+          + qualityScore * 0.2
+          + entityTrustScore * 0.15
+          + helpfulRatio * 0.1
+          + responseBonus * 0.1
+          + followBonus * 0.1;
+
+        return { row: r, feedScore };
+      });
+
+      scored.sort((a, b) => {
+        if (b.feedScore !== a.feedScore) return b.feedScore - a.feedScore;
+        return b.row.createdAt.getTime() - a.row.createdAt.getTime();
+      });
+
+      const scoredRows = scored.map((x) => x.row);
+      const startIndex = cursor ? Math.max(0, scoredRows.findIndex((r) => r.id === cursor) + 1) : 0;
+      reviews = scoredRows.slice(startIndex, startIndex + limit + 1);
+    } else {
+      const cursorWhere = await this.buildReviewCursorWhere(cursor, sort === 'top' ? 'helpful' : 'newest');
+      const where = cursorWhere ? { AND: [baseWhere, cursorWhere] } : baseWhere;
+      const orderBy: Prisma.ReviewOrderByWithRelationInput[] =
+        sort === 'top'
+          ? [{ helpfulCount: 'desc' }, { publishedAt: 'desc' }, { id: 'desc' }]
+          : [{ publishedAt: 'desc' }, { id: 'desc' }];
+
+      [reviews, total] = await Promise.all([
+        this.prisma.review.findMany({
+          where,
+          orderBy,
+          take: limit + 1,
+          include: {
+            author: { select: { id: true, displayName: true, trustLevel: true } },
+            ...(userId
+              ? {
+                  votes: {
+                    where: { voterUserId: userId },
+                    select: { voteType: true },
+                    take: 1,
+                  },
+                }
+              : {}),
+            entity: {
+              select: {
+                id: true,
+                displayName: true,
+                averageRating: true,
+                reviewCount: true,
+                trustScore: true,
+                addressLine: true,
+                category: { select: { key: true, nameEn: true, icon: true } },
+                city: { select: { nameEn: true } },
+              },
+            },
+            tagLinks: {
+              include: { tag: { select: { key: true, labelEn: true, isPositive: true } } },
+            },
+            replies: {
+              where: { status: 'published' },
+              include: { author: { select: { id: true, displayName: true } } },
+              orderBy: { createdAt: 'asc' },
+              take: 3,
+            },
+            comments: {
+              where: { deletedAt: null },
+              include: { author: { select: { id: true, displayName: true } } },
+              orderBy: { createdAt: 'desc' },
+              take: 5,
+            },
+            _count: {
+              select: { comments: true },
+            },
+          },
+        }),
+        this.prisma.review.count({ where: baseWhere }),
+      ]);
+    }
+
+    const hasNext = reviews.length > limit;
+    const pageRows = hasNext ? reviews.slice(0, limit) : reviews;
+
+    const items = pageRows.map((r) => ({
       ...(userId ? { userVote: (r as any).votes?.[0]?.voteType ?? null } : {}),
       id: r.id,
       overallRating: r.overallRating,
@@ -601,12 +733,12 @@ export class ReviewsService {
         categoryIcon: r.entity.category.icon,
         city: r.entity.city.nameEn,
       },
-      tags: r.tagLinks.map((tl) => ({
+      tags: r.tagLinks.map((tl: any) => ({
         key: tl.tag.key,
         label: tl.tag.labelEn,
         isPositive: tl.tag.isPositive,
       })),
-      replies: r.replies.map((reply) => ({
+      replies: r.replies.map((reply: any) => ({
         id: reply.id,
         body: reply.body,
         authorRole: reply.authorRole,
@@ -614,7 +746,7 @@ export class ReviewsService {
         createdAt: reply.createdAt,
       })),
       commentCount: r._count.comments,
-      comments: r.comments.map((comment) => ({
+      comments: r.comments.map((comment: any) => ({
         id: comment.id,
         body: comment.body,
         isAnonymous: comment.isAnonymous,
@@ -627,7 +759,8 @@ export class ReviewsService {
       })),
     }));
 
-    return new PaginatedResponse(items, total, page, pageSize);
+    const nextCursor = hasNext ? pageRows[pageRows.length - 1]?.id ?? null : null;
+    return new CursorPaginatedResponse(items, nextCursor, total);
   }
 
   async getReviewComments(reviewId: string, page: number = 1, pageSize: number = 20) {
@@ -815,13 +948,77 @@ export class ReviewsService {
     // Track review streak
     await this.reviewStreaks.recordReviewActivity(userId);
 
-    // Calculate review quality score (async, best-effort)
-    await this.reviewQuality.calculateScore(reviewId);
+    // Offload heavy operations to BullMQ workers.
+    await Promise.all([
+      this.jobs.enqueueRecalculateQualityScore({ reviewId }),
+      this.jobs.enqueueEvaluateBadges({ userId }),
+      this.jobs.enqueueRecalculateResponseMetrics({ entityId }),
+    ]);
+  }
 
-    // Re-evaluate user badges
-    await this.badges.evaluateUserBadges(userId);
+  private async buildReviewCursorWhere(
+    cursorId?: string,
+    sort?: 'newest' | 'highest' | 'lowest' | 'helpful',
+  ): Promise<Prisma.ReviewWhereInput | null> {
+    if (!cursorId) return null;
 
-    // Recalculate entity response metrics
-    await this.responseMetrics.recalculate(entityId);
+    const cursorReview = await this.prisma.review.findUnique({
+      where: { id: cursorId },
+      select: { id: true, createdAt: true, overallRating: true, helpfulCount: true, publishedAt: true },
+    });
+    if (!cursorReview) return null;
+
+    if (sort === 'highest') {
+      return {
+        OR: [
+          { overallRating: { lt: cursorReview.overallRating } },
+          {
+            overallRating: cursorReview.overallRating,
+            OR: [
+              { createdAt: { lt: cursorReview.createdAt } },
+              { createdAt: cursorReview.createdAt, id: { lt: cursorReview.id } },
+            ],
+          },
+        ],
+      };
+    }
+
+    if (sort === 'lowest') {
+      return {
+        OR: [
+          { overallRating: { gt: cursorReview.overallRating } },
+          {
+            overallRating: cursorReview.overallRating,
+            OR: [
+              { createdAt: { lt: cursorReview.createdAt } },
+              { createdAt: cursorReview.createdAt, id: { lt: cursorReview.id } },
+            ],
+          },
+        ],
+      };
+    }
+
+    if (sort === 'helpful') {
+      return {
+        OR: [
+          { helpfulCount: { lt: cursorReview.helpfulCount } },
+          {
+            helpfulCount: cursorReview.helpfulCount,
+            OR: [
+              { createdAt: { lt: cursorReview.createdAt } },
+              { createdAt: cursorReview.createdAt, id: { lt: cursorReview.id } },
+            ],
+          },
+        ],
+      };
+    }
+
+    const timestamp = cursorReview.publishedAt || cursorReview.createdAt;
+    return {
+      OR: [
+        { publishedAt: { lt: timestamp } },
+        { publishedAt: timestamp, id: { lt: cursorReview.id } },
+      ],
+    };
   }
 }

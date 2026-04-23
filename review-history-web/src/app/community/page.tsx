@@ -75,7 +75,7 @@ export default function CommunityPage() {
 
   const feedQuery = useInfiniteFeedReviews({
     pageSize: 10,
-    sort: tab === 'trending' ? 'trending' : 'recent',
+    sort: tab === 'trending' ? 'top' : 'recent',
     ...(showFollowingFeed ? { following: true } : {}),
   });
 
@@ -98,7 +98,7 @@ export default function CommunityPage() {
   }, [isAuthenticated, trackStreakActivity]);
 
   const reviews = feedQuery.data?.pages.flatMap((p) => p.data) ?? [];
-  const rankingPreview = isAuthenticated ? reviews.slice(0, 6) : reviews.slice(0, 3);
+  const rankingPreview = isAuthenticated ? reviews : reviews.slice(0, 3);
 
   return (
     <PublicLayout>
@@ -199,6 +199,30 @@ export default function CommunityPage() {
                   {!isAuthenticated && reviews.length > 3 && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                       Sign in to unlock full community rankings and personalized signals.
+                    </div>
+                  )}
+
+                  {isAuthenticated && feedQuery.hasNextPage && (
+                    <div className="pt-1 text-center">
+                      <button
+                        onClick={() => feedQuery.fetchNextPage()}
+                        disabled={feedQuery.isFetchingNextPage}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors',
+                          feedQuery.isFetchingNextPage
+                            ? 'bg-surface text-muted'
+                            : 'bg-primary text-white hover:bg-primary-dark',
+                        )}
+                      >
+                        {feedQuery.isFetchingNextPage ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          'Load More'
+                        )}
+                      </button>
                     </div>
                   )}
                 </div>

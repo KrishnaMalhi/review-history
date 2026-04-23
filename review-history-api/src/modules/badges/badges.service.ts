@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { BadgeType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BadgesService {
   private readonly logger = new Logger(BadgesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async getEntityBadges(entityId: string) {
     const badges = await this.prisma.badge.findMany({
@@ -108,6 +112,11 @@ export class BadgesService {
     condition: boolean,
   ) {
     if (condition) {
+      const existing = await this.prisma.badge.findFirst({
+        where: { badgeType, targetType, targetId },
+        select: { id: true },
+      });
+
       await this.prisma.badge.upsert({
         where: {
           badgeType_targetType_targetId: { badgeType, targetType, targetId },
@@ -115,6 +124,17 @@ export class BadgesService {
         update: {},
         create: { badgeType, targetType, targetId },
       });
+
+      if (!existing && targetType === 'user') {
+        await this.notifications.send({
+          userId: targetId,
+          type: 'badge_awarded',
+          payload: {
+            badgeType,
+            message: `You earned a new badge: ${badgeType}`,
+          },
+        });
+      }
     } else {
       // Don't revoke permanent badges
       const permanentBadges: BadgeType[] = [

@@ -3,7 +3,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateBlogDto, BlogPostStatusDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
 import { ListBlogsDto } from './dto/list-blogs.dto';
-import { PaginatedResponse } from '../../common/dto/pagination.dto';
+import { CursorPaginatedResponse } from '../../common/dto/pagination.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
 import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
@@ -15,9 +15,8 @@ export class BlogsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listPublic(query: ListBlogsDto) {
-    const page = query.page || 1;
-    const pageSize = query.pageSize || 12;
-    const skip = (page - 1) * pageSize;
+    const limit = query.limit || query.pageSize || 12;
+    const cursorId = query.cursor;
     const q = query.q?.trim();
 
     const where: any = {
@@ -51,12 +50,35 @@ export class BlogsService {
       where.status = query.status;
     }
 
+    const cursorPost = cursorId
+      ? await this.prisma.blogPost.findUnique({
+          where: { id: cursorId },
+          select: { id: true, publishedAt: true, createdAt: true },
+        })
+      : null;
+
+    const whereWithCursor = cursorPost
+      ? {
+          AND: [
+            where,
+            {
+              OR: [
+                { publishedAt: { lt: cursorPost.publishedAt || cursorPost.createdAt } },
+                {
+                  publishedAt: cursorPost.publishedAt || cursorPost.createdAt,
+                  id: { lt: cursorPost.id },
+                },
+              ],
+            },
+          ],
+        }
+      : where;
+
     const [rows, total] = await Promise.all([
       this.prisma.blogPost.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { publishedAt: 'desc' },
+        where: whereWithCursor,
+        take: limit + 1,
+        orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
         select: {
           id: true,
           slug: true,
@@ -83,7 +105,11 @@ export class BlogsService {
       this.prisma.blogPost.count({ where }),
     ]);
 
-    return new PaginatedResponse(rows, total, page, pageSize);
+    const hasNext = rows.length > limit;
+    const pageRows = hasNext ? rows.slice(0, limit) : rows;
+    const nextCursor = hasNext ? pageRows[pageRows.length - 1]?.id ?? null : null;
+
+    return new CursorPaginatedResponse(pageRows, nextCursor, total);
   }
 
   async getPublicBySlug(slug: string) {
@@ -145,9 +171,8 @@ export class BlogsService {
   }
 
   async listAdmin(query: ListBlogsDto) {
-    const page = query.page || 1;
-    const pageSize = query.pageSize || 20;
-    const skip = (page - 1) * pageSize;
+    const limit = query.limit || query.pageSize || 20;
+    const cursorId = query.cursor;
     const q = query.q?.trim();
 
     const where: any = { deletedAt: null };
@@ -163,12 +188,32 @@ export class BlogsService {
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.tagId) where.tags = { some: { id: query.tagId } };
 
+    const cursorPost = cursorId
+      ? await this.prisma.blogPost.findUnique({
+          where: { id: cursorId },
+          select: { id: true, createdAt: true },
+        })
+      : null;
+
+    const whereWithCursor = cursorPost
+      ? {
+          AND: [
+            where,
+            {
+              OR: [
+                { createdAt: { lt: cursorPost.createdAt } },
+                { createdAt: cursorPost.createdAt, id: { lt: cursorPost.id } },
+              ],
+            },
+          ],
+        }
+      : where;
+
     const [rows, total] = await Promise.all([
       this.prisma.blogPost.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
+        where: whereWithCursor,
+        take: limit + 1,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         include: {
           author: { select: { id: true, displayName: true } },
           category: { select: { id: true, name: true, slug: true } },
@@ -178,7 +223,10 @@ export class BlogsService {
       this.prisma.blogPost.count({ where }),
     ]);
 
-    return new PaginatedResponse(rows, total, page, pageSize);
+    const hasNext = rows.length > limit;
+    const pageRows = hasNext ? rows.slice(0, limit) : rows;
+    const nextCursor = hasNext ? pageRows[pageRows.length - 1]?.id ?? null : null;
+    return new CursorPaginatedResponse(pageRows, nextCursor, total);
   }
 
   async create(dto: CreateBlogDto, adminUserId: string) {

@@ -6,12 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { JobsService } from '../jobs/jobs.service';
 
 @Injectable()
 export class IssueResolutionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly jobs: JobsService,
   ) {}
 
   async markResolved(reviewId: string, userId: string) {
@@ -51,16 +53,15 @@ export class IssueResolutionsService {
     });
 
     // Notify review author
-    await this.notifications.createNotification(
-      review.authorUserId,
-      'moderation_action',
-      {
-        message: 'The entity owner has marked your review issue as resolved',
+    await this.notifications.send({
+      userId: review.authorUserId,
+      type: 'issue_resolved_by_owner',
+      payload: {
+        message: 'The entity owner has marked your review issue as resolved.',
         reviewId,
         entityId: review.entityId,
-        action: 'issue_resolved',
       },
-    );
+    });
 
     return { status: resolution.status, resolvedAt: resolution.resolvedAt };
   }
@@ -86,6 +87,26 @@ export class IssueResolutionsService {
       data: { status: 'confirmed_resolved', confirmedAt: new Date() },
     });
 
+    await this.jobs.enqueueRecalculateResponseMetrics({ entityId: resolution.review.entityId });
+    await this.jobs.enqueueEvaluateBadges({ entityId: resolution.review.entityId });
+
+    const ownerClaim = await this.prisma.entityClaim.findFirst({
+      where: { entityId: resolution.review.entityId, status: 'approved' },
+      orderBy: { approvedAt: 'desc' },
+      select: { requesterUserId: true },
+    });
+    if (ownerClaim?.requesterUserId) {
+      await this.notifications.send({
+        userId: ownerClaim.requesterUserId,
+        type: 'issue_confirmed',
+        payload: {
+          reviewId,
+          entityId: resolution.review.entityId,
+          message: 'A reviewer confirmed that the issue was resolved.',
+        },
+      });
+    }
+
     return { status: 'confirmed_resolved' };
   }
 
@@ -108,6 +129,23 @@ export class IssueResolutionsService {
       where: { reviewId },
       data: { status: 'disputed' },
     });
+
+    const ownerClaim = await this.prisma.entityClaim.findFirst({
+      where: { entityId: resolution.review.entityId, status: 'approved' },
+      orderBy: { approvedAt: 'desc' },
+      select: { requesterUserId: true },
+    });
+    if (ownerClaim?.requesterUserId) {
+      await this.notifications.send({
+        userId: ownerClaim.requesterUserId,
+        type: 'issue_disputed',
+        payload: {
+          reviewId,
+          entityId: resolution.review.entityId,
+          message: 'A reviewer disputed the issue resolution.',
+        },
+      });
+    }
 
     return { status: 'disputed' };
   }

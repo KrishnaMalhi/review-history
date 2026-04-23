@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { ListDiscussionsDto } from './dto/list-discussions.dto';
-import { PaginatedResponse } from '../../common/dto/pagination.dto';
+import { CursorPaginatedResponse } from '../../common/dto/pagination.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { CreateDiscussionDto } from './dto/create-discussion.dto';
 import { CreateDiscussionCommentDto } from './dto/create-discussion-comment.dto';
@@ -19,9 +19,8 @@ export class DiscussionsService {
   ) {}
 
   async list(query: ListDiscussionsDto, currentUserId?: string) {
-    const page = query.page || 1;
-    const pageSize = query.pageSize || 20;
-    const skip = (page - 1) * pageSize;
+    const limit = query.limit || query.pageSize || 20;
+    const cursorId = query.cursor;
     const q = query.q?.trim();
 
     const where: Prisma.DiscussionPostWhereInput = {
@@ -37,12 +36,32 @@ export class DiscussionsService {
         : {}),
     };
 
+    const cursorPost = cursorId
+      ? await this.prisma.discussionPost.findUnique({
+          where: { id: cursorId },
+          select: { id: true, createdAt: true },
+        })
+      : null;
+
+    const whereWithCursor: Prisma.DiscussionPostWhereInput = cursorPost
+      ? {
+          AND: [
+            where,
+            {
+              OR: [
+                { createdAt: { lt: cursorPost.createdAt } },
+                { createdAt: cursorPost.createdAt, id: { lt: cursorPost.id } },
+              ],
+            },
+          ],
+        }
+      : where;
+
     const [rows, total] = await Promise.all([
       this.prisma.discussionPost.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
+        where: whereWithCursor,
+        take: limit + 1,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         include: {
           author: { select: { id: true, displayName: true } },
           comments: {
@@ -65,7 +84,10 @@ export class DiscussionsService {
       this.prisma.discussionPost.count({ where }),
     ]);
 
-    const items = rows.map((row) => ({
+    const hasNext = rows.length > limit;
+    const pageRows = hasNext ? rows.slice(0, limit) : rows;
+
+    const items = pageRows.map((row) => ({
       id: row.id,
       title: row.title,
       body: row.body,
@@ -89,7 +111,8 @@ export class DiscussionsService {
       })),
     }));
 
-    return new PaginatedResponse(items, total, page, pageSize);
+    const nextCursor = hasNext ? pageRows[pageRows.length - 1]?.id ?? null : null;
+    return new CursorPaginatedResponse(items, nextCursor, total);
   }
 
   async create(dto: CreateDiscussionDto, userId: string) {

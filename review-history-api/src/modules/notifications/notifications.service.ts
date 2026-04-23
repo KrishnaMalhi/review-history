@@ -3,6 +3,19 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { NotificationChannel, NotificationType } from '@prisma/client';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
 
+type NotificationTypeInput =
+  | NotificationType
+  | 'issue_resolved_by_owner'
+  | 'issue_confirmed'
+  | 'issue_disputed'
+  | 'badge_awarded'
+  | 'streak_milestone'
+  | 'helpful_milestone'
+  | 'weekly_recap'
+  | 'new_review_on_followed'
+  | 'campaign_ending_soon'
+  | 'employer_verified';
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -56,12 +69,26 @@ export class NotificationsService {
 
   async createNotification(
     userId: string,
-    type: NotificationType,
+    type: NotificationTypeInput,
     payload: Record<string, any>,
     channel: NotificationChannel = 'in_app',
   ) {
     return this.prisma.notification.create({
-      data: { userId, type, payloadJson: payload, channel },
+      data: { userId, type: type as NotificationType, payloadJson: payload, channel },
     });
+  }
+
+  async send(input: {
+    userId: string;
+    type: NotificationTypeInput;
+    payload: Record<string, any>;
+    channel?: NotificationChannel;
+  }) {
+    return this.createNotification(
+      input.userId,
+      input.type,
+      input.payload,
+      input.channel ?? 'in_app',
+    );
   }
 }

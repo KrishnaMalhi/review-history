@@ -3,10 +3,16 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateReplyDto } from './dto/create-reply.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { ReplyAuthorRole } from '@prisma/client';
+import { JobsService } from '../jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RepliesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jobs: JobsService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async create(reviewId: string, dto: CreateReplyDto, userId: string) {
     const review = await this.prisma.review.findFirst({
@@ -36,6 +42,19 @@ export class RepliesService {
         authorUserId: userId,
         authorRole,
         body,
+      },
+    });
+
+    await this.jobs.enqueueRecalculateResponseMetrics({ entityId: review.entityId });
+    await this.jobs.enqueueEvaluateBadges({ entityId: review.entityId });
+    await this.notifications.send({
+      userId: review.authorUserId,
+      type: 'reply_received',
+      payload: {
+        reviewId,
+        entityId: review.entityId,
+        replyId: reply.id,
+        message: 'The claimed owner has replied to your review.',
       },
     });
 

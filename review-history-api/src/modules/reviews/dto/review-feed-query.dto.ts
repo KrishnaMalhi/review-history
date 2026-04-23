@@ -12,10 +12,10 @@ export class ReviewFeedQueryDto extends PaginationDto {
   @Matches(/^[a-z0-9_-]+$/, { message: 'category must contain only lowercase letters, numbers, hyphens, and underscores' })
   category?: string;
 
-  @ApiPropertyOptional({ enum: ['recent', 'helpful', 'trending'], default: 'recent' })
+  @ApiPropertyOptional({ enum: ['recommended', 'recent', 'top'], default: 'recommended' })
   @IsOptional()
-  @IsIn(['recent', 'helpful', 'trending'])
-  sort?: 'recent' | 'helpful' | 'trending' = 'recent';
+  @IsIn(['recommended', 'recent', 'top'])
+  sort?: 'recommended' | 'recent' | 'top' = 'recommended';
 
   @ApiPropertyOptional({ example: 4, minimum: 1, maximum: 5 })
   @IsOptional()

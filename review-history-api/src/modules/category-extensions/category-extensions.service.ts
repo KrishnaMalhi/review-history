@@ -7,6 +7,12 @@ import {
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
+import {
+  MEDICAL_CATEGORY_KEYS,
+  PRODUCT_CATEGORY_KEYS,
+  SCHOOL_CATEGORY_KEYS,
+  WORKPLACE_CATEGORY_KEYS,
+} from '../../common/constants/category-keys';
 
 /**
  * CategoryExtensionsService handles profile CRUD and review data creation
@@ -15,12 +21,6 @@ import { PaginatedResponse } from '../../common/dto/pagination.dto';
  *
  * Routing is based on the entity's category key.
  */
-
-// Category keys that map to each vertical
-const SCHOOL_CATEGORIES = ['school', 'college', 'university', 'madrasa'];
-const MEDICAL_CATEGORIES = ['doctor', 'hospital', 'clinic', 'dentist'];
-const PRODUCT_CATEGORIES = ['food_product', 'product'];
-const EMPLOYER_CATEGORIES = ['employer', 'workplace', 'workspace', 'company'];
 
 @Injectable()
 export class CategoryExtensionsService {
@@ -32,13 +32,13 @@ export class CategoryExtensionsService {
     const entity = await this.getEntityWithCategory(entityId);
     const categoryKey = entity.category.key;
 
-    if (SCHOOL_CATEGORIES.includes(categoryKey)) {
+    if (SCHOOL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.getSchoolProfile(entityId);
     }
-    if (MEDICAL_CATEGORIES.includes(categoryKey)) {
+    if (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.getMedicalProfile(entityId);
     }
-    if (PRODUCT_CATEGORIES.includes(categoryKey)) {
+    if (PRODUCT_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.getProductProfile(entityId);
     }
     return null; // General categories don't have extended profiles
@@ -49,13 +49,13 @@ export class CategoryExtensionsService {
     await this.verifyOwnership(entityId, userId);
     const categoryKey = entity.category.key;
 
-    if (SCHOOL_CATEGORIES.includes(categoryKey)) {
+    if (SCHOOL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.createSchoolProfile(entityId, data);
     }
-    if (MEDICAL_CATEGORIES.includes(categoryKey)) {
+    if (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.createMedicalProfile(entityId, data);
     }
-    if (PRODUCT_CATEGORIES.includes(categoryKey)) {
+    if (PRODUCT_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.createProductProfile(entityId, data);
     }
     return null;
@@ -66,13 +66,13 @@ export class CategoryExtensionsService {
     await this.verifyOwnership(entityId, userId);
     const categoryKey = entity.category.key;
 
-    if (SCHOOL_CATEGORIES.includes(categoryKey)) {
+    if (SCHOOL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.updateSchoolProfile(entityId, data);
     }
-    if (MEDICAL_CATEGORIES.includes(categoryKey)) {
+    if (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.updateMedicalProfile(entityId, data);
     }
-    if (PRODUCT_CATEGORIES.includes(categoryKey)) {
+    if (PRODUCT_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.updateProductProfile(entityId, data);
     }
     return null;
@@ -83,32 +83,32 @@ export class CategoryExtensionsService {
   async createReviewData(reviewId: string, categoryKey: string, data: any) {
     if (!data || Object.keys(data).length === 0) return null;
 
-    if (EMPLOYER_CATEGORIES.includes(categoryKey)) {
+    if (WORKPLACE_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.createWorkplaceReviewData(reviewId, data);
     }
-    if (SCHOOL_CATEGORIES.includes(categoryKey)) {
+    if (SCHOOL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.createSchoolReviewData(reviewId, data);
     }
-    if (MEDICAL_CATEGORIES.includes(categoryKey)) {
+    if (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.createMedicalReviewData(reviewId, data);
     }
-    if (PRODUCT_CATEGORIES.includes(categoryKey)) {
+    if (PRODUCT_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.createProductReviewData(reviewId, data);
     }
     return null;
   }
 
   async getReviewData(reviewId: string, categoryKey: string) {
-    if (EMPLOYER_CATEGORIES.includes(categoryKey)) {
+    if (WORKPLACE_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.prisma.workplaceReviewData.findUnique({ where: { reviewId } });
     }
-    if (SCHOOL_CATEGORIES.includes(categoryKey)) {
+    if (SCHOOL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.prisma.schoolReviewData.findUnique({ where: { reviewId } });
     }
-    if (MEDICAL_CATEGORIES.includes(categoryKey)) {
+    if (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.prisma.medicalReviewData.findUnique({ where: { reviewId } });
     }
-    if (PRODUCT_CATEGORIES.includes(categoryKey)) {
+    if (PRODUCT_CATEGORY_KEYS.includes(categoryKey as any)) {
       return this.prisma.productReviewData.findUnique({ where: { reviewId } });
     }
     return null;
@@ -178,10 +178,11 @@ export class CategoryExtensionsService {
   private async getMedicalProfile(entityId: string) {
     const profile = await this.prisma.medicalProfile.findUnique({ where: { entityId } });
     if (!profile) return null;
+    const { pmdcNumber: _pmdcNumber, ...safeProfile } = profile;
     return {
-      ...profile,
-      timings: profile.timingsJson || {},
-      services: profile.servicesJson || [],
+      ...safeProfile,
+      timings: safeProfile.timingsJson || {},
+      services: safeProfile.servicesJson || [],
       type: 'medical',
     };
   }
@@ -237,10 +238,11 @@ export class CategoryExtensionsService {
   private async getProductProfile(entityId: string) {
     const profile = await this.prisma.productProfile.findUnique({ where: { entityId } });
     if (!profile) return null;
+    const { barcode: _barcode, ...safeProfile } = profile;
     return {
-      ...profile,
-      variants: profile.variantsJson || [],
-      nutrition: profile.nutritionJson || {},
+      ...safeProfile,
+      variants: safeProfile.variantsJson || [],
+      nutrition: safeProfile.nutritionJson || {},
       type: 'product',
     };
   }

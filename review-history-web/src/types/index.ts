@@ -8,6 +8,7 @@ export interface ApiResponse<T> {
 
 export interface PaginatedResponse<T> {
   data: T[];
+  nextCursor?: string | null;
   meta: {
     total: number;
     page: number;

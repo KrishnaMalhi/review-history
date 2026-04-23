@@ -2,7 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
+  UnprocessableEntityException,
   GoneException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +10,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import * as crypto from 'crypto';
+import { hashIp } from '../../common/utils/ip.util';
 
 @Injectable()
 export class ReviewInvitesService {
@@ -41,7 +42,9 @@ export class ReviewInvitesService {
       where: { entityId, status: 'active' },
     });
     if (activeCount >= ReviewInvitesService.MAX_ACTIVE_INVITES_PER_ENTITY) {
-      throw new BadRequestException(`Maximum ${ReviewInvitesService.MAX_ACTIVE_INVITES_PER_ENTITY} active invites per entity`);
+      throw new UnprocessableEntityException(
+        `Maximum ${ReviewInvitesService.MAX_ACTIVE_INVITES_PER_ENTITY} active invites per entity`,
+      );
     }
 
     // Generate cryptographically secure token
@@ -141,7 +144,7 @@ export class ReviewInvitesService {
     return { message: 'Invite revoked' };
   }
 
-  async resolveToken(token: string) {
+  async resolveToken(token: string, rawIp?: string) {
     const invite = await this.prisma.reviewInvite.findUnique({
       where: { token },
       include: {
@@ -193,6 +196,7 @@ export class ReviewInvitesService {
         eventType: 'review_request_opened',
         entityId: invite.entityId,
         inviteId: invite.id,
+        ipHash: rawIp ? hashIp(rawIp) : null,
       },
     });
 
@@ -211,10 +215,17 @@ export class ReviewInvitesService {
     });
     if (!invite || invite.status !== 'active') return;
 
-    await this.prisma.reviewInvite.update({
+    const updated = await this.prisma.reviewInvite.update({
       where: { id: invite.id },
       data: { useCount: { increment: 1 } },
     });
+
+    if (updated.maxUses && updated.useCount >= updated.maxUses) {
+      await this.prisma.reviewInvite.update({
+        where: { id: updated.id },
+        data: { status: 'expired' },
+      });
+    }
 
     await this.prisma.analyticsEvent.create({
       data: {

@@ -3,12 +3,16 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { VoteType } from '@prisma/client';
 import { ReviewStreaksService } from '../review-streaks/review-streaks.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { JobsService } from '../jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class VotesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reviewStreaks: ReviewStreaksService,
+    private readonly jobs: JobsService,
+    private readonly notifications: NotificationsService,
     @Optional() private readonly realtime?: RealtimeGateway,
   ) {}
 
@@ -27,6 +31,7 @@ export class VotesService {
       // Remove vote (toggle off)
       await this.prisma.reviewVote.delete({ where: { id: existing.id } });
       const counts = await this.updateVoteCounts(reviewId);
+      await this.jobs.enqueueRecalculateQualityScore({ reviewId });
       this.realtime?.emitReviewVote(reviewId, counts.helpful, counts.notHelpful, counts.seemsFake);
       return { action: 'removed', voteType };
     }
@@ -46,8 +51,12 @@ export class VotesService {
     });
 
     await this.reviewStreaks.recordActivity(userId, 'like_or_vote');
+    if (voteType === 'helpful') {
+      await this.maybeSendHelpfulMilestoneNotification(reviewId);
+    }
 
     const counts = await this.updateVoteCounts(reviewId);
+    await this.jobs.enqueueRecalculateQualityScore({ reviewId });
     this.realtime?.emitReviewVote(reviewId, counts.helpful, counts.notHelpful, counts.seemsFake);
     return { action: 'added', voteType };
   }
@@ -83,5 +92,33 @@ export class VotesService {
     });
 
     return { helpful, notHelpful, seemsFake };
+  }
+
+  private async maybeSendHelpfulMilestoneNotification(reviewId: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+      select: { authorUserId: true },
+    });
+    if (!review?.authorUserId) return;
+
+    const helpfulVotesReceived = await this.prisma.reviewVote.count({
+      where: {
+        review: { authorUserId: review.authorUserId },
+        voteType: 'helpful',
+      },
+    });
+
+    const milestones = [10, 25, 50];
+    if (!milestones.includes(helpfulVotesReceived)) return;
+
+    await this.notifications.send({
+      userId: review.authorUserId,
+      type: 'helpful_milestone',
+      payload: {
+        helpfulVotesReceived,
+        reviewId,
+        message: `Your reviews reached ${helpfulVotesReceived} helpful votes.`,
+      },
+    });
   }
 }

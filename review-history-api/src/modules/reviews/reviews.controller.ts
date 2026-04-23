@@ -45,7 +45,7 @@ export class ReviewsController {
   @Get('reviews/feed')
   @ApiOperation({ summary: 'Public feed of recent reviews across all entities' })
   getFeed(@Query() query: ReviewFeedQueryDto) {
-    return this.reviewsService.getFeed(query.page, query.pageSize, query.category, query.sort, query.rating, query.following);
+    return this.reviewsService.getFeed(query);
   }
 
   @Get('reviews/feed/me')
@@ -53,15 +53,7 @@ export class ReviewsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Authenticated feed with optional following filter' })
   getMyFeed(@CurrentUser() user: JwtPayload, @Query() query: ReviewFeedQueryDto) {
-    return this.reviewsService.getFeed(
-      query.page,
-      query.pageSize,
-      query.category,
-      query.sort,
-      query.rating,
-      query.following,
-      user.sub,
-    );
+    return this.reviewsService.getFeed(query, user.sub);
   }
 
   @Public()

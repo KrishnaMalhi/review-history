@@ -3,6 +3,8 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IssueResolutionsService } from './issue-resolutions.service';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { Get } from '@nestjs/common';
 
 @ApiTags('Issue Resolutions')
 @ApiBearerAuth()
@@ -29,11 +31,26 @@ export class IssueResolutionsController {
   }
 
   @Roles('user')
-  @Post('reviews/:reviewId/dispute-resolution')
+  @Post('reviews/:reviewId/dispute-resolved')
   async disputeResolution(
     @Param('reviewId', ParseUUIDPipe) reviewId: string,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.disputeResolution(reviewId, user.sub);
+  }
+
+  @Roles('user')
+  @Post('reviews/:reviewId/dispute-resolution')
+  async disputeResolutionLegacy(
+    @Param('reviewId', ParseUUIDPipe) reviewId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.disputeResolution(reviewId, user.sub);
+  }
+
+  @Public()
+  @Get('reviews/:reviewId/resolution')
+  async getResolution(@Param('reviewId', ParseUUIDPipe) reviewId: string) {
+    return this.service.getByReview(reviewId);
   }
 }

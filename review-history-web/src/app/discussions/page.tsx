@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   MessageCircle,
   ThumbsDown,
@@ -52,27 +52,7 @@ export default function DiscussionsPage() {
   const visibleDiscussions = isAuthenticated ? discussions : discussions.slice(0, 3);
   const totalCount = infiniteQuery.data?.pages[0]?.meta?.total ?? 0;
 
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
   const hasTrackedVisitRef = useRef(false);
-
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [entry] = entries;
-      if (!isAuthenticated && discussions.length >= 3) return;
-      if (entry.isIntersecting && infiniteQuery.hasNextPage && !infiniteQuery.isFetchingNextPage) {
-        infiniteQuery.fetchNextPage();
-      }
-    },
-    [isAuthenticated, discussions.length, infiniteQuery.hasNextPage, infiniteQuery.isFetchingNextPage, infiniteQuery.fetchNextPage],
-  );
-
-  useEffect(() => {
-    if (observerRef.current) observerRef.current.disconnect();
-    observerRef.current = new IntersectionObserver(handleObserver, { rootMargin: '300px' });
-    if (sentinelRef.current) observerRef.current.observe(sentinelRef.current);
-    return () => observerRef.current?.disconnect();
-  }, [handleObserver]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -240,14 +220,23 @@ export default function DiscussionsPage() {
                 </Card>
               )}
 
+              {isAuthenticated && infiniteQuery.hasNextPage && (
+                <div className="pt-2 text-center">
+                  <Button
+                    onClick={() => infiniteQuery.fetchNextPage()}
+                    loading={infiniteQuery.isFetchingNextPage}
+                  >
+                    Load More
+                  </Button>
+                </div>
+              )}
+
               {isAuthenticated && infiniteQuery.isFetchingNextPage && (
                 <div className="flex items-center justify-center gap-2 py-6">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="text-sm text-muted">Loading more...</span>
                 </div>
               )}
-
-              <div ref={sentinelRef} className="h-1" />
 
               {isAuthenticated && !infiniteQuery.hasNextPage && discussions.length > 5 && (
                 <div className="flex flex-col items-center gap-2 py-8 text-center">

@@ -43,12 +43,12 @@ export class SearchEntitiesDto extends PaginationDto {
   localityId?: string;
 
   @ApiPropertyOptional({
-    enum: ['newest', 'rating', 'reviews', 'name', 'rating_desc', 'rating_asc', 'reviews_desc', 'trust_desc'],
+    enum: ['recommended', 'newest', 'rating', 'reviews', 'name', 'rating_desc', 'rating_asc', 'reviews_desc', 'trust_desc'],
   })
   @IsOptional()
-  @IsIn(['newest', 'rating', 'reviews', 'name', 'rating_desc', 'rating_asc', 'reviews_desc', 'trust_desc'])
+  @IsIn(['recommended', 'newest', 'rating', 'reviews', 'name', 'rating_desc', 'rating_asc', 'reviews_desc', 'trust_desc'])
   @MaxLength(FIELD_LIMITS.SEARCH_SORT)
-  sort?: string = 'newest';
+  sort?: string = 'recommended';
 
   @ApiPropertyOptional({ example: 4 })
   @IsOptional()

@@ -31,13 +31,16 @@ function toPaginated<T>(payload: any): PaginatedResponse<T> {
     return payload as PaginatedResponse<T>;
   }
 
-  const items = payload?.items ?? [];
+  const items = Array.isArray(payload?.data)
+    ? payload.data
+    : (payload?.items ?? []);
   const total = Number(payload?.total ?? items.length);
   const page = Number(payload?.page ?? 1);
   const pageSize = Number(payload?.pageSize ?? (items.length || 20));
 
   return {
     data: items,
+    nextCursor: payload?.nextCursor ?? null,
     meta: {
       total,
       page,
@@ -183,7 +186,7 @@ export function useLocalities(cityId: string) {
 export type FeedQueryParams = {
   pageSize?: number;
   category?: string;
-  sort?: 'recent' | 'helpful' | 'trending';
+  sort?: 'recommended' | 'recent' | 'top';
   rating?: number;
   following?: boolean;
   mine?: boolean;
@@ -193,18 +196,19 @@ export function useInfiniteFeedReviews(params: FeedQueryParams) {
   const pageSize = Number(params.pageSize) || 10;
   return useInfiniteQuery({
     queryKey: ['feedReviews', params],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam = null }) => {
       const { mine, ...apiParams } = params;
       const feedPath = mine || params.following ? '/reviews/feed/me' : '/reviews/feed';
-      const payload = await apiGet<any>(feedPath, { ...apiParams, page: pageParam, pageSize });
+      const payload = await apiGet<any>(feedPath, {
+        ...apiParams,
+        pageSize,
+        ...(pageParam ? { cursor: pageParam } : {}),
+      });
       return toPaginated<FeedReview>(payload);
     },
-    initialPageParam: 1,
+    initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => {
-      if (lastPage.meta.page < lastPage.meta.totalPages) {
-        return lastPage.meta.page + 1;
-      }
-      return undefined;
+      return lastPage.nextCursor ?? undefined;
     },
   });
 }

@@ -45,6 +45,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
 import { DiscussionsModule } from './modules/discussions/discussions.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     BlogsModule,
     DiscussionsModule,
     RealtimeModule,
+    JobsModule,
   ],
   providers: [
     {

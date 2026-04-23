@@ -1,4 +1,4 @@
-import { IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsString, MaxLength } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class PaginationDto {
@@ -22,6 +22,11 @@ export class PaginationDto {
   @Min(1)
   @Max(100)
   pageSize?: number = 20;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  cursor?: string;
 }
 
 export class PaginatedResponse<T> {
@@ -50,5 +55,19 @@ export class PaginatedResponse<T> {
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
     this.meta = this.pagination;
+  }
+}
+
+export class CursorPaginatedResponse<T> {
+  data: T[];
+  nextCursor: string | null;
+  total?: number;
+
+  constructor(data: T[], nextCursor: string | null, total?: number) {
+    this.data = data;
+    this.nextCursor = nextCursor;
+    if (typeof total === 'number') {
+      this.total = total;
+    }
   }
 }

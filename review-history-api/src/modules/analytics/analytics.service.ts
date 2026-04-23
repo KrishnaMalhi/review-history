@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { AnalyticsEventType } from '@prisma/client';
+import { hashIp } from '../../common/utils/ip.util';
 
 @Injectable()
 export class AnalyticsService {
@@ -10,16 +11,31 @@ export class AnalyticsService {
     eventType: AnalyticsEventType;
     entityId?: string;
     userId?: string;
+    inviteId?: string;
     metadataJson?: any;
+    rawIp?: string;
   }) {
     return this.prisma.analyticsEvent.create({
       data: {
         eventType: data.eventType,
         entityId: data.entityId || null,
         userId: data.userId || null,
+        inviteId: data.inviteId || null,
         metadataJson: data.metadataJson || null,
+        ipHash: data.rawIp ? hashIp(data.rawIp) : null,
       },
     });
+  }
+
+  logEvent(data: {
+    eventType: AnalyticsEventType;
+    entityId?: string;
+    userId?: string;
+    inviteId?: string;
+    metadataJson?: any;
+    rawIp?: string;
+  }): void {
+    this.trackEvent(data).catch(() => undefined);
   }
 
   async getEntityPageViews(entityId: string, days: number = 30) {
@@ -86,11 +102,12 @@ export class AnalyticsService {
     };
   }
 
-  async trackPageView(entityId: string, userId?: string) {
+  async trackPageView(entityId: string, userId?: string, rawIp?: string) {
     return this.trackEvent({
       eventType: 'entity_page_view',
       entityId,
       userId,
+      rawIp,
     });
   }
 }

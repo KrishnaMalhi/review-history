@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { EmployerProfilesService } from './employer-profiles.service';
 import { CreateEmployerProfileDto } from './dto/create-employer-profile.dto';
@@ -7,6 +7,7 @@ import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.de
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { EntityOwnerGuard } from '../../common/guards/entity-owner.guard';
 
 @ApiTags('Employer Profiles')
 @Controller()
@@ -20,7 +21,7 @@ export class EmployerProfilesController {
   }
 
   @ApiBearerAuth()
-  @Roles('claimed_owner')
+  @UseGuards(EntityOwnerGuard)
   @Post('entities/:entityId/employer-profile')
   async create(
     @Param('entityId') entityId: string,
@@ -31,7 +32,7 @@ export class EmployerProfilesController {
   }
 
   @ApiBearerAuth()
-  @Roles('claimed_owner')
+  @UseGuards(EntityOwnerGuard)
   @Patch('entities/:entityId/employer-profile')
   async update(
     @Param('entityId') entityId: string,

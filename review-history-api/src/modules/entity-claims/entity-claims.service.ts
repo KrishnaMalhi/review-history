@@ -11,17 +11,22 @@ import { ReviewClaimDto } from './dto/review-claim.dto';
 import { ClaimVerificationMethod } from '@prisma/client';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
-
-const EMPLOYER_CATEGORIES = ['employer', 'workplace', 'workspace', 'company'];
-const SCHOOL_CATEGORIES = ['school', 'college', 'university', 'madrasa'];
-const MEDICAL_CATEGORIES = ['doctor', 'hospital', 'clinic', 'dentist'];
-const PRODUCT_CATEGORIES = ['food_product', 'product'];
+import { NotificationsService } from '../notifications/notifications.service';
+import {
+  MEDICAL_CATEGORY_KEYS,
+  PRODUCT_CATEGORY_KEYS,
+  SCHOOL_CATEGORY_KEYS,
+  WORKPLACE_CATEGORY_KEYS,
+} from '../../common/constants/category-keys';
 
 @Injectable()
 export class EntityClaimsService {
   private readonly logger = new Logger(EntityClaimsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async createClaim(entityId: string, dto: CreateClaimDto, userId: string) {
     const entity = await this.prisma.entity.findFirst({
@@ -131,6 +136,17 @@ export class EntityClaimsService {
       },
     });
 
+    await this.notifications.send({
+      userId: claim.requesterUserId,
+      type: dto.action === 'approved' ? 'claim_approved' : 'claim_rejected',
+      payload: {
+        claimId,
+        entityId: claim.entityId,
+        reason: dto.reason || null,
+        message: dto.action === 'approved' ? 'Your entity claim has been approved.' : 'Your entity claim has been rejected.',
+      },
+    });
+
     return { claimId, status: updatedClaim.status };
   }
 
@@ -144,7 +160,7 @@ export class EntityClaimsService {
     const categoryKey = entity.category?.key;
     if (!categoryKey) return;
 
-    if (EMPLOYER_CATEGORIES.includes(categoryKey)) {
+    if (WORKPLACE_CATEGORY_KEYS.includes(categoryKey as any)) {
       await this.prisma.employerProfile.upsert({
         where: { entityId },
         update: {},
@@ -153,7 +169,7 @@ export class EntityClaimsService {
       return;
     }
 
-    if (SCHOOL_CATEGORIES.includes(categoryKey)) {
+    if (SCHOOL_CATEGORY_KEYS.includes(categoryKey as any)) {
       await this.prisma.schoolProfile.upsert({
         where: { entityId },
         update: {},
@@ -162,7 +178,7 @@ export class EntityClaimsService {
       return;
     }
 
-    if (MEDICAL_CATEGORIES.includes(categoryKey)) {
+    if (MEDICAL_CATEGORY_KEYS.includes(categoryKey as any)) {
       await this.prisma.medicalProfile.upsert({
         where: { entityId },
         update: {},
@@ -171,7 +187,7 @@ export class EntityClaimsService {
       return;
     }
 
-    if (PRODUCT_CATEGORIES.includes(categoryKey)) {
+    if (PRODUCT_CATEGORY_KEYS.includes(categoryKey as any)) {
       await this.prisma.productProfile.upsert({
         where: { entityId },
         update: {},

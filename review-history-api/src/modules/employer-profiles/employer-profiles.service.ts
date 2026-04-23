@@ -10,12 +10,16 @@ import { CreateEmployerProfileDto } from './dto/create-employer-profile.dto';
 import { UpdateEmployerProfileDto } from './dto/update-employer-profile.dto';
 import { sanitizeInput } from '../../common/utils/helpers';
 import { PaginatedResponse } from '../../common/dto/pagination.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const EMPLOYER_CATEGORY_KEYS = ['employer', 'workplace', 'workspace', 'company'];
 
 @Injectable()
 export class EmployerProfilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async create(entityId: string, dto: CreateEmployerProfileDto, userId: string) {
     const entity = await this.prisma.entity.findFirst({
@@ -89,6 +93,11 @@ export class EmployerProfilesService {
   }
 
   async verifyEmployer(entityId: string, method: string, adminUserId: string) {
+    const entity = await this.prisma.entity.findUnique({
+      where: { id: entityId },
+      select: { claimedUserId: true },
+    });
+
     const profile = await this.prisma.employerProfile.findUnique({
       where: { entityId },
     });
@@ -124,6 +133,17 @@ export class EmployerProfilesService {
       entityId,
       method,
     });
+
+    if (entity?.claimedUserId) {
+      await this.notifications.send({
+        userId: entity.claimedUserId,
+        type: 'employer_verified',
+        payload: {
+          entityId,
+          message: 'Your employer profile is now verified.',
+        },
+      });
+    }
 
     return this.mapProfile(updated);
   }
@@ -171,19 +191,23 @@ export class EmployerProfilesService {
   }
 
   private calculateCompletion(profile: any): number {
-    const fields = [
-      'description',
-      'logoUrl',
-      'coverImageUrl',
-      'websiteUrl',
-      'industry',
-      'employerSize',
-      'foundedYear',
-      'benefitsJson',
-      'socialLinksJson',
-    ];
-    const filled = fields.filter((f) => profile[f] != null).length;
-    return Math.round((filled / fields.length) * 100);
+    let score = 0;
+    if (profile.description) score += 15;
+    if (profile.logoUrl) score += 15;
+    if (profile.coverImageUrl) score += 15;
+    if (profile.websiteUrl) score += 15;
+    if (profile.industry) score += 10;
+    if (profile.employerSize) score += 10;
+    if (profile.foundedYear) score += 10;
+    if (Array.isArray(profile.benefitsJson) && profile.benefitsJson.length > 0) score += 10;
+
+    const hasSocialLinks =
+      !!profile.socialLinksJson
+      && typeof profile.socialLinksJson === 'object'
+      && Object.values(profile.socialLinksJson).some(Boolean);
+    if (hasSocialLinks) score += 5;
+
+    return Math.min(100, score);
   }
 
   private mapProfile(profile: any) {

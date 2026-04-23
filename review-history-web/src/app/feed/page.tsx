@@ -266,7 +266,7 @@ function ReviewCommentBubble({ comment }: { comment: ReviewComment }) {
 
 export default function FeedPage() {
   const { isAuthenticated } = useAuth();
-  const [sort, setSort] = useState<'recent' | 'helpful' | 'trending'>('recent');
+  const [sort, setSort] = useState<'recommended' | 'recent' | 'top'>('recommended');
   const { mutate: trackStreakActivity } = useTrackStreakActivity();
   const hasTrackedVisitRef = useRef(false);
 
@@ -307,10 +307,10 @@ export default function FeedPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant={sort === 'recent' ? 'primary' : 'outline'} onClick={() => setSort('recent')}>Recent</Button>
-            <Button size="sm" variant={sort === 'helpful' ? 'primary' : 'outline'} onClick={() => setSort('helpful')}>Helpful</Button>
-            <Button size="sm" variant={sort === 'trending' ? 'primary' : 'outline'} onClick={() => setSort('trending')}>
+            <Button size="sm" variant={sort === 'recommended' ? 'primary' : 'outline'} onClick={() => setSort('recommended')}>Recommended</Button>
+            <Button size="sm" variant={sort === 'top' ? 'primary' : 'outline'} onClick={() => setSort('top')}>
               <Star className="mr-1 h-3.5 w-3.5" />
-              Trending
+              Top
             </Button>
           </div>
         </div>
