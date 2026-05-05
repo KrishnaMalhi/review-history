@@ -1,9 +1,9 @@
-# ReviewHistory Platform — Full Final Implementation Plan
+﻿# ReviewHistory Platform â€” Full Final Implementation Plan
 
-> **Version:** 3.0 — Final Merged
+> **Version:** 3.0 â€” Final Merged
 > **Prepared:** 2026-04-29
-> **Scope:** Web app · Admin portal · NestJS API · PostgreSQL/Prisma DB
-> **Sources:** Original spec · Claude enhancements · GPT enhancements — merged into single authoritative document
+> **Scope:** Web app Â· Admin portal Â· NestJS API Â· PostgreSQL/Prisma DB
+> **Sources:** Original spec Â· Claude enhancements Â· GPT enhancements â€” merged into single authoritative document
 
 ---
 
@@ -11,22 +11,22 @@
 
 Each phase has a **goal statement** followed by work items grouped by layer:
 
-- `[DB]` — Prisma schema migration required
-- `[API]` — NestJS endpoint or service change
-- `[WEB]` — Next.js web app page or component
-- `[ADMIN]` — Admin portal change
-- `[CLIENT]` — Client-side infra (API helpers, sockets, state)
+- `[DB]` â€” Prisma schema migration required
+- `[API]` â€” NestJS endpoint or service change
+- `[WEB]` â€” Next.js web app page or component
+- `[ADMIN]` â€” Admin portal change
+- `[CLIENT]` â€” Client-side infra (API helpers, sockets, state)
 
-**Priority labels:** `[BLOCKER]` must ship before phase ends · `[HIGH]` strong ROI · `[MED]` improves depth · `[LOW]` polish
+**Priority labels:** `[BLOCKER]` must ship before phase ends Â· `[HIGH]` strong ROI Â· `[MED]` improves depth Â· `[LOW]` polish
 
-**Admin rule:** Every phase includes its own admin completion tasks. Phase 12 is final polish only — not a catch-all for missing admin functionality.
+**Admin rule:** Every phase includes its own admin completion tasks. Phase 12 is final polish only â€” not a catch-all for missing admin functionality.
 
 ---
 
 ## Core Product Decision
 
 > ReviewHistory is a **trust and reputation network** where the **entity profile is the center**.
-> Every feature must connect back to: **entity · review · discussion · claim · owner response · user reputation · category · city · moderation signal**.
+> Every feature must connect back to: **entity Â· review Â· discussion Â· claim Â· owner response Â· user reputation Â· category Â· city Â· moderation signal**.
 > It must never become a generic social network or status-posting platform.
 
 ---
@@ -35,85 +35,85 @@ Each phase has a **goal statement** followed by work items grouped by layer:
 
 | DB Model / Feature | Exposed? | Gap |
 |---|---|---|
-| `ReviewQualityScore` | ❌ | Not shown on entity or feed cards |
-| `CommunityValidation` enum (`confirmed/outdated/resolved`) | ⚠️ | Values never typed in web spec |
-| `DuplicateCandidate` + `DuplicateMergeVote` | ❌ | No user-facing report-duplicate flow |
-| `IssueResolution` | ❌ | Tracked in DB, zero UI state shown |
-| `SalarySubmission` | ❌ | Model exists, zero web/admin spec coverage |
-| `ReviewInvite.maxUses` + `expiresAt` | ⚠️ | DB has it, `POST /entities/:id/invites` doesn't send it |
-| `EntityAlias` | ❌ | No admin or user flow to manage aliases |
-| `EntityResponseMetric` | ⚠️ | Fetched in owner dashboard, never shown publicly |
-| `ModerationAction` | ⚠️ | Only `resolve` exposed, not full action history |
-| `AuditLog` | ⚠️ | Admin `/audit` page exists, no cross-linking from other modules |
-| `TrustScoreEvent` | ❌ | No event timeline shown anywhere |
-| `UserDevice` + fingerprint | ❌ | Collected silently, not in admin user detail |
-| `businessHoursJson` on Entity | ⚠️ | Stored as blob; no "open now" logic anywhere |
-| `ReviewHelpfulVote` voter identity | ❌ | Counts exist, voter ID not tracked → can't show "You voted this helpful" |
-| `EntityVerificationDocument` | ❌ | Claim has one `evidenceUrl` string; no multi-doc model for admin review |
-| `UserBanAppeal` | ❌ | Banned users have no structured appeal path |
-| `EntityMergeHistory` | ❌ | Merge audit is only in AuditLog; no queryable merge trail per entity |
-| `SearchQueryLog` | ❌ | No search analytics; blind to what users search but don't find |
-| `NotificationTemplate` | ❌ | Notification content hardcoded; no admin-controlled email templates |
-| `ReviewFlag` (auto-detection) | ❌ | No model for system-generated flags (PII, competitor, suspicious pattern) |
-| `OwnerPost` | ❌ | No model; owners have no proactive communication layer on entity page |
-| `EntityQA` | ❌ | No structured Q&A model separate from discussions |
-| `WatchlistAlert` | ❌ | Users can follow entities but can't set threshold-based alerts |
-| `EntityRelationship` | ❌ | No branch/rebrand/alias relationship graph |
-| `EvidenceItem` (structured) | ❌ | Evidence is raw image array; no type/visibility/verification layer |
-| `OwnerTeamMember` | ❌ | No multi-user team support for owned entities |
-| `ReviewBombingIncident` | ❌ | Velocity detection exists as concept but no dedicated incident model |
-| `UserLoginEvent` | ❌ | Device tracked; login events (IP, location, method, timestamp) not structured |
-| `PlatformConfig` | ❌ | Business rules hardcoded; no admin-configurable rule table |
+| `ReviewQualityScore` | âŒ | Not shown on entity or feed cards |
+| `CommunityValidation` enum (`confirmed/outdated/resolved`) | âš ï¸ | Values never typed in web spec |
+| `DuplicateCandidate` + `DuplicateMergeVote` | âŒ | No user-facing report-duplicate flow |
+| `IssueResolution` | âŒ | Tracked in DB, zero UI state shown |
+| `SalarySubmission` | âŒ | Model exists, zero web/admin spec coverage |
+| `ReviewInvite.maxUses` + `expiresAt` | âš ï¸ | DB has it, `POST /entities/:id/invites` doesn't send it |
+| `EntityAlias` | âŒ | No admin or user flow to manage aliases |
+| `EntityResponseMetric` | âš ï¸ | Fetched in owner dashboard, never shown publicly |
+| `ModerationAction` | âš ï¸ | Only `resolve` exposed, not full action history |
+| `AuditLog` | âš ï¸ | Admin `/audit` page exists, no cross-linking from other modules |
+| `TrustScoreEvent` | âŒ | No event timeline shown anywhere |
+| `UserDevice` + fingerprint | âŒ | Collected silently, not in admin user detail |
+| `businessHoursJson` on Entity | âš ï¸ | Stored as blob; no "open now" logic anywhere |
+| `ReviewHelpfulVote` voter identity | âŒ | Counts exist, voter ID not tracked â†’ can't show "You voted this helpful" |
+| `EntityVerificationDocument` | âŒ | Claim has one `evidenceUrl` string; no multi-doc model for admin review |
+| `UserBanAppeal` | âŒ | Banned users have no structured appeal path |
+| `EntityMergeHistory` | âŒ | Merge audit is only in AuditLog; no queryable merge trail per entity |
+| `SearchQueryLog` | âŒ | No search analytics; blind to what users search but don't find |
+| `NotificationTemplate` | âŒ | Notification content hardcoded; no admin-controlled email templates |
+| `ReviewFlag` (auto-detection) | âŒ | No model for system-generated flags (PII, competitor, suspicious pattern) |
+| `OwnerPost` | âŒ | No model; owners have no proactive communication layer on entity page |
+| `EntityQA` | âŒ | No structured Q&A model separate from discussions |
+| `WatchlistAlert` | âŒ | Users can follow entities but can't set threshold-based alerts |
+| `EntityRelationship` | âŒ | No branch/rebrand/alias relationship graph |
+| `EvidenceItem` (structured) | âŒ | Evidence is raw image array; no type/visibility/verification layer |
+| `OwnerTeamMember` | âŒ | No multi-user team support for owned entities |
+| `ReviewBombingIncident` | âŒ | Velocity detection exists as concept but no dedicated incident model |
+| `UserLoginEvent` | âŒ | Device tracked; login events (IP, location, method, timestamp) not structured |
+| `PlatformConfig` | âŒ | Business rules hardcoded; no admin-configurable rule table |
 
 ---
 
-## Phase 0 — Foundation Hardening *(1–2 weeks)*
+## Phase 0 â€” Foundation Hardening *(1â€“2 weeks)*
 
 **Goal:** Fix broken flows, close spec gaps, expose what DB already has. Establish upload standards and client contracts. Zero new features.
 
 ### 0.1 Client Infrastructure `[BLOCKER]`
 
-- `[CLIENT]` Add `429 Too Many Requests` handler to `apiGet/apiPost/apiPatch/apiDelete` — read `Retry-After` header, exponential backoff
-- `[CLIENT]` Add `403` handler — show "access denied" page/toast, never silently fail
-- `[CLIENT]` Add `5xx` stable fallback — generic error message, never expose raw server errors
-- `[CLIENT]` Add network error catch-all — show retry CTA
+- `[CLIENT]` Add `429 Too Many Requests` handler to `apiGet/apiPost/apiPatch/apiDelete` â€” read `Retry-After` header, exponential backoff
+- `[CLIENT]` Add `403` handler â€” show "access denied" page/toast, never silently fail
+- `[CLIENT]` Add `5xx` stable fallback â€” generic error message, never expose raw server errors
+- `[CLIENT]` Add network error catch-all â€” show retry CTA
 - `[CLIENT]` Socket reconnect handler: on `disconnect`, re-join all active rooms, refetch cursor delta since last `nextCursor`, deduplicate incoming events
-- `[CLIENT]` Optimistic UI for: review votes, comment reactions, discussion reactions, follow/unfollow, save/unsave, notification read — update local state instantly, revert on API error with toast
+- `[CLIENT]` Optimistic UI for: review votes, comment reactions, discussion reactions, follow/unfollow, save/unsave, notification read â€” update local state instantly, revert on API error with toast
 - `[CLIENT]` Feed scroll position restoration: persist `nextCursor` + scroll offset in `sessionStorage` keyed by route, restore on back-navigation
 - `[CLIENT]` Add **request deduplication**: if the same GET URL fires twice within 200ms, deduplicate into one in-flight promise
-- `[CLIENT]` Add **global skeleton standards**: define a `<Skeleton>` component used uniformly across all cards — prevents layout shift
+- `[CLIENT]` Add **global skeleton standards**: define a `<Skeleton>` component used uniformly across all cards â€” prevents layout shift
 
 ### 0.2 Upload Service Standard `[BLOCKER]`
 
-Move upload architecture here — reviews, discussions, avatars, entity logos, claim documents, and evidence all depend on correct upload behavior before any other phase:
+Move upload architecture here â€” reviews, discussions, avatars, entity logos, claim documents, and evidence all depend on correct upload behavior before any other phase:
 
-- `[API]` `POST /upload/presigned` — `{ filename, mimeType, context: 'review'|'discussion'|'profile'|'entity'|'evidence'|'claim_doc' }` → `{ uploadUrl, fileUrl }`
+- `[API]` `POST /upload/presigned` â€” `{ filename, mimeType, context: 'review'|'discussion'|'profile'|'entity'|'evidence'|'claim_doc' }` â†’ `{ uploadUrl, fileUrl }`
 - `[CLIENT]` Upload file directly to CDN via presigned URL with real progress bar; submit `fileUrl` strings to form endpoints instead of binary
 - `[CLIENT]` Client-side validation before every upload: MIME type check, max 5MB, inline size error
 - `[CLIENT]` Client-side image compression using `browser-image-compression` before upload
-- `[CLIENT]` Image preview after selection with remove (×) button before final submit
+- `[CLIENT]` Image preview after selection with remove (Ã—) button before final submit
 - `[API]` Server-side: re-validate MIME type, enforce max dimensions, auto-compress via `sharp` before CDN storage
 - `[WEB]` Consistent `<UploadInput>` component reused across all forms
 - Keep existing multipart routes as fallback for backward compatibility
 
 ### 0.3 Auth Flow Documentation `[BLOCKER]`
 
-- `[API]` Document `/auth/login` response shape when `requiresVerification: true` — must explicitly return `{ requiresVerification, otpRequestId, email }` — currently undocumented
-- `[WEB]` `/auth/login` — read `otpRequestId` from login response body before redirecting to `/auth/verify`, not from URL construction
+- `[API]` Document `/auth/login` response shape when `requiresVerification: true` â€” must explicitly return `{ requiresVerification, otpRequestId, email }` â€” currently undocumented
+- `[WEB]` `/auth/login` â€” read `otpRequestId` from login response body before redirecting to `/auth/verify`, not from URL construction
 
 ### 0.4 Expose Already-Built DB Features `[HIGH]`
 
 - `[API]` Enforce `CommunityValidationType` enum (`confirmed | outdated | resolved`) as typed DTO in `POST /reviews/:id/validations`
-- `[API]` `GET /reviews/:id/validations` — include counts per `validationType`
+- `[API]` `GET /reviews/:id/validations` â€” include counts per `validationType`
 - `[WEB]` Review cards: show `ReviewQualityScore.totalScore` as quality badge (`Detailed` / `Brief`)
-- `[WEB]` Review cards: show `IssueResolution.status` — if `resolved_by_owner` → "Owner resolved this"; if `confirmed_resolved` → "Resolved ✓"
+- `[WEB]` Review cards: show `IssueResolution.status` â€” if `resolved_by_owner` â†’ "Owner resolved this"; if `confirmed_resolved` â†’ "Resolved âœ“"
 - `[WEB]` Owner dashboard reviews tab: show `IssueResolution` status column per review
-- `[API]` `POST /entities/:id/invites` — accept and persist `maxUses?`, `expiresAt?`, `label?`
+- `[API]` `POST /entities/:id/invites` â€” accept and persist `maxUses?`, `expiresAt?`, `label?`
 - `[ADMIN]` User detail: show `UserDevice` list (fingerprint hash, risk score, first/last seen)
 
 ### 0.5 Platform Config Table `[HIGH]`
 
-Centralize all configurable business rules — prevents hardcoded thresholds scattered across services:
+Centralize all configurable business rules â€” prevents hardcoded thresholds scattered across services:
 
 - `[DB]` New model:
   ```prisma
@@ -128,27 +128,27 @@ Centralize all configurable business rules — prevents hardcoded thresholds sca
   }
   ```
 - Seed defaults: `review.max_per_day=3`, `review.min_per_entity_interval_months=6`, `moderation.toxicity_threshold=0.8`, `search.autocomplete_max=5`, `invite.max_per_entity_per_month=100`, `claim.doc_expiry_days=365`
-- `[API]` Config service: `ConfigService.get(key)` — used by all modules instead of hardcoded values
-- `[API]` `GET /admin/config` · `PATCH /admin/config/:key`
-- `[ADMIN]` New page `/admin/config` — key-value editor grouped by category
+- `[API]` Config service: `ConfigService.get(key)` â€” used by all modules instead of hardcoded values
+- `[API]` `GET /admin/config` Â· `PATCH /admin/config/:key`
+- `[ADMIN]` New page `/admin/config` â€” key-value editor grouped by category
 
 ### 0.6 Notification Read-All `[HIGH]`
 
-- `[API]` `PATCH /notifications/read-all` already exists — wire it to web
-- `[WEB]` `/dashboard/notification` — add "Mark all as read" button
+- `[API]` `PATCH /notifications/read-all` already exists â€” wire it to web
+- `[WEB]` `/dashboard/notification` â€” add "Mark all as read" button
 
 ### 0.7 Analytics Fire-and-Forget `[MED]`
 
-- `[WEB]` `POST /analytics/entities/:id/page-view` — make non-blocking (fire-and-forget), debounce to ignore repeat calls within 30s for same entity in same tab session
+- `[WEB]` `POST /analytics/entities/:id/page-view` â€” make non-blocking (fire-and-forget), debounce to ignore repeat calls within 30s for same entity in same tab session
 
 ### 0.8 Onboarding Re-Entry `[MED]`
 
-- `[API]` `PUT /onboarding/preferences` already exists — expose it from profile dashboard
-- `[WEB]` `/dashboard/profile` — add "Update Interests" section calling `PUT /onboarding/preferences`
+- `[API]` `PUT /onboarding/preferences` already exists â€” expose it from profile dashboard
+- `[WEB]` `/dashboard/profile` â€” add "Update Interests" section calling `PUT /onboarding/preferences`
 
 ### 0.9 Admin Stability `[MED]`
 
-- `[ADMIN]` Add session-expired error boundary — currently admin may silently fail on expired session
+- `[ADMIN]` Add session-expired error boundary â€” currently admin may silently fail on expired session
 - `[ADMIN]` Add proper "Access Denied" page for unauthorized role access
 - `[ADMIN]` Verify admin auth refresh flow matches web pattern
 - `[ADMIN]` Add session activity indicator: "Active X minutes ago" on admin nav
@@ -157,42 +157,42 @@ Centralize all configurable business rules — prevents hardcoded thresholds sca
 
 ---
 
-## Phase 1 — User Identity & Profile Depth *(2–3 weeks)*
+## Phase 1 â€” User Identity & Profile Depth *(2â€“3 weeks)*
 
-**Goal:** Give users a real identity — avatar, public profile, privacy controls, account security, login history, device management.
+**Goal:** Give users a real identity â€” avatar, public profile, privacy controls, account security, login history, device management.
 
 ### 1.1 User Avatar `[BLOCKER]`
 
 - `[DB]` Add to `User`: `avatarUrl String? @map("avatar_url") @db.VarChar(500)`
-- `[API]` `POST /me/avatar` — uses presigned upload flow (Phase 0.2), returns `{ avatarUrl }`
-- `[API]` `DELETE /me/avatar` — remove avatar, set to null
+- `[API]` `POST /me/avatar` â€” uses presigned upload flow (Phase 0.2), returns `{ avatarUrl }`
+- `[API]` `DELETE /me/avatar` â€” remove avatar, set to null
 - `[WEB]` Profile page: avatar upload with client-side crop preview, remove button
 - `[ADMIN]` User detail: show avatar thumbnail
 
 ### 1.2 Account Security `[BLOCKER]`
 
-- `[API]` `PATCH /me/password` — `{ currentPassword, newPassword }` — verify current, add audit log
-- `[API]` `POST /me/change-email` — `{ newEmail, password }` → verify password, send OTP → returns `otpRequestId`
-- `[API]` `POST /me/verify-change-email` — `{ otpRequestId, code }` → confirm, update email, revoke other sessions
-- `[API]` `DELETE /me` — soft-delete: set `deletedAt`, anonymize PII (`email → deleted+uuid`, `phoneE164 → deleted`), revoke all sessions (GDPR/PDPA)
+- `[API]` `PATCH /me/password` â€” `{ currentPassword, newPassword }` â€” verify current, add audit log
+- `[API]` `POST /me/change-email` â€” `{ newEmail, password }` â†’ verify password, send OTP â†’ returns `otpRequestId`
+- `[API]` `POST /me/verify-change-email` â€” `{ otpRequestId, code }` â†’ confirm, update email, revoke other sessions
+- `[API]` `DELETE /me` â€” soft-delete: set `deletedAt`, anonymize PII (`email â†’ deleted+uuid`, `phoneE164 â†’ deleted`), revoke all sessions (GDPR/PDPA)
 - `[DB]` Add to `User`: `deactivatedAt DateTime?`, `deletedReason String? @db.VarChar(200)`
-- `[WEB]` `/dashboard/profile` — account settings: password change, email change, deletion flow with explicit consequence modal
+- `[WEB]` `/dashboard/profile` â€” account settings: password change, email change, deletion flow with explicit consequence modal
 
 ### 1.3 Username Slug `[HIGH]`
 
-- `[API]` `PATCH /me` — accept `usernameSlug` with uniqueness validation (alphanumeric + hyphens, 3–30 chars)
-- `[API]` `GET /me/check-username?slug=` — returns `{ available: boolean }`
+- `[API]` `PATCH /me` â€” accept `usernameSlug` with uniqueness validation (alphanumeric + hyphens, 3â€“30 chars)
+- `[API]` `GET /me/check-username?slug=` â€” returns `{ available: boolean }`
 - `[WEB]` Profile page: editable username field with debounced availability check
 - `[WEB]` Public profile URL: `/users/[usernameSlug]`
 
 ### 1.4 Public User Profile `[HIGH]`
 
-- `[API]` `GET /users/:usernameOrId` — public-safe profile: avatar, displayName, city (if public), bio, badges, stats, contributorLevel
-- `[API]` `GET /users/:id/reviews` — paginated public reviews
-- `[API]` `GET /users/:id/discussions` — paginated public discussions
-- `[API]` `GET /users/:id/reputation` — public reputation summary
+- `[API]` `GET /users/:usernameOrId` â€” public-safe profile: avatar, displayName, city (if public), bio, badges, stats, contributorLevel
+- `[API]` `GET /users/:id/reviews` â€” paginated public reviews
+- `[API]` `GET /users/:id/discussions` â€” paginated public discussions
+- `[API]` `GET /users/:id/reputation` â€” public reputation summary
 - `[WEB]` New route `/users/[usernameSlug]`: avatar, name, city, bio, member since, contributor level, badge grid, streak stats, public reviews, public discussions, followers/following + Follow button
-- `[WEB]` All review/discussion/comment author names → link to `/users/:id`
+- `[WEB]` All review/discussion/comment author names â†’ link to `/users/:id`
 
 ### 1.5 Privacy Settings `[HIGH]`
 
@@ -212,19 +212,19 @@ Centralize all configurable business rules — prevents hardcoded thresholds sca
     @@map("user_privacy_settings")
   }
   ```
-- `[API]` `GET /me/privacy` · `PATCH /me/privacy`
+- `[API]` `GET /me/privacy` Â· `PATCH /me/privacy`
 - `[WEB]` Privacy settings panel in `/dashboard/profile`
 
 ### 1.6 Contributor Levels `[MED]`
 
 - `[DB]` Add to `User`: `contributorLevel String @default("new_member") @map("contributor_level") @db.VarChar(30)`
-- Levels: `new_member → verified_member → helpful_reviewer → trusted_contributor → community_expert → category_expert`
+- Levels: `new_member â†’ verified_member â†’ helpful_reviewer â†’ trusted_contributor â†’ community_expert â†’ category_expert`
 - `[API]` Background job: recalculate on review/vote/badge milestones; include in `GET /me` and `GET /users/:id`
 - `[WEB]` Contributor level label + progress hint on public profile and dashboard sidebar
 
 ### 1.7 Phone Verification `[MED]`
 
-- `[API]` `POST /auth/request-phone-otp` · `POST /auth/verify-phone` → set `isPhoneVerified = true`
+- `[API]` `POST /auth/request-phone-otp` Â· `POST /auth/verify-phone` â†’ set `isPhoneVerified = true`
 - `[WEB]` Profile page: "Verify your phone number" CTA when `isPhoneVerified = false`
 
 ### 1.8 Login History & Device Management `[MED]`
@@ -247,8 +247,8 @@ Centralize all configurable business rules — prevents hardcoded thresholds sca
   }
   ```
 - `[API]` Write `UserLoginEvent` on every login; flag events from new countries
-- `[API]` `POST /auth/logout-all` — revoke all sessions except current
-- `[WEB]` `/dashboard/profile` → "Recent sign-ins" section: last 5 events with time, method, location
+- `[API]` `POST /auth/logout-all` â€” revoke all sessions except current
+- `[WEB]` `/dashboard/profile` â†’ "Recent sign-ins" section: last 5 events with time, method, location
 - `[WEB]` "Log out all other devices" button
 - `[ADMIN]` User detail: login history tab, suspicious foreign-country login flag
 
@@ -270,13 +270,13 @@ Centralize all configurable business rules — prevents hardcoded thresholds sca
     @@map("user_ban_appeals")
   }
   ```
-- `[API]` `POST /me/ban-appeal` — `{ reason, evidenceUrls? }` — only when user status is `banned`
+- `[API]` `POST /me/ban-appeal` â€” `{ reason, evidenceUrls? }` â€” only when user status is `banned`
 - `[WEB]` On login with banned status: show ban reason + "Submit Appeal" CTA
 - `[ADMIN]` Appeals queue at `/admin/users/appeals`
 
 ---
 
-## Phase 2 — Entity Profile Richness & Trust Graph *(3–4 weeks)*
+## Phase 2 â€” Entity Profile Richness & Trust Graph *(3â€“4 weeks)*
 
 **Goal:** Make entity pages the credible centerpiece. Media, rich metadata, trust summary, review summary, entity relationships, similar/comparison entities, duplicate reporting.
 
@@ -284,30 +284,30 @@ Centralize all configurable business rules — prevents hardcoded thresholds sca
 
 ```
 Entity Header
- ├── logo · cover image · name · category · city/locality
- ├── verified/claimed badge with tier · trust score · avg rating · open-now chip
- └── Follow · Save · Set Alert · Write Review · Claim / Report
+ â”œâ”€â”€ logo Â· cover image Â· name Â· category Â· city/locality
+ â”œâ”€â”€ verified/claimed badge with tier Â· trust score Â· avg rating Â· open-now chip
+ â””â”€â”€ Follow Â· Save Â· Set Alert Â· Write Review Â· Claim / Report
 
 Trust Overview
- ├── Trust Score · Review Count · Verified Review % · Health Score ring
- ├── Owner Response Rate · Avg Response Time · Resolution Rate
- ├── Sentiment Trend (recent 30 days) · Category Benchmark percentile
+ â”œâ”€â”€ Trust Score Â· Review Count Â· Verified Review % Â· Health Score ring
+ â”œâ”€â”€ Owner Response Rate Â· Avg Response Time Â· Resolution Rate
+ â”œâ”€â”€ Sentiment Trend (recent 30 days) Â· Category Benchmark percentile
 
 Review Summary
- ├── Rating breakdown · Common positive tags
- ├── Common warning tags · Recent complaints
- └── Owner response summary · Freshness stats
+ â”œâ”€â”€ Rating breakdown Â· Common positive tags
+ â”œâ”€â”€ Common warning tags Â· Recent complaints
+ â””â”€â”€ Owner response summary Â· Freshness stats
 
 Entity Tabs
- ├── Reviews
- ├── Q&A
- ├── Discussions (entity-linked)
- ├── About (metadata, hours, map, links)
- ├── Trust & Verification (timeline + documents)
- ├── Owner Updates (owner posts)
- ├── Photos / Evidence
- ├── Similar Entities
- └── Related Entities (trust graph)
+ â”œâ”€â”€ Reviews
+ â”œâ”€â”€ Q&A
+ â”œâ”€â”€ Discussions (entity-linked)
+ â”œâ”€â”€ About (metadata, hours, map, links)
+ â”œâ”€â”€ Trust & Verification (timeline + documents)
+ â”œâ”€â”€ Owner Updates (owner posts)
+ â”œâ”€â”€ Photos / Evidence
+ â”œâ”€â”€ Similar Entities
+ â””â”€â”€ Related Entities (trust graph)
 ```
 
 ### 2.1 Entity Base Media & Metadata `[BLOCKER]`
@@ -326,8 +326,8 @@ Entity Tabs
   longitude         Decimal? @db.Decimal(10,7)
   displayNameUr     String?  @map("display_name_ur") @db.VarChar(200)
   ```
-- `[API]` `PATCH /entities/:id/profile` — accepts enriched metadata fields (owner + admin)
-- `[API]` `GET /entities/:id` — compute and return `isOpenNow: boolean` and `nextOpenAt: string | null` from `businessHoursJson` + entity timezone
+- `[API]` `PATCH /entities/:id/profile` â€” accepts enriched metadata fields (owner + admin)
+- `[API]` `GET /entities/:id` â€” compute and return `isOpenNow: boolean` and `nextOpenAt: string | null` from `businessHoursJson` + entity timezone
 - `[WEB]` Entity header: logo, cover, website, social, open-now chip, Urdu name when set
 - `[WEB]` About tab: hours, official email, description, alternate phones, gallery, map pin (Google Maps static/OpenStreetMap)
 - `[ADMIN]` Entity create/edit: all new fields including lat/lng with map preview, Urdu name
@@ -356,21 +356,21 @@ Bad entities often change name, reopen under new pages, or operate under related
     @@map("entity_relationships")
   }
   ```
-- `[API]` `GET /entities/:id/relationships` — returns related entities grouped by `relationType`
-- `[API]` `POST /admin/entities/relationships` — `{ sourceEntityId, targetEntityId, relationType, note? }`
+- `[API]` `GET /entities/:id/relationships` â€” returns related entities grouped by `relationType`
+- `[API]` `POST /admin/entities/relationships` â€” `{ sourceEntityId, targetEntityId, relationType, note? }`
 - `[API]` `DELETE /admin/entities/relationships/:id`
 - `[WEB]` Entity page "Related Entities" tab:
   - "Other branches" (branch_of)
-  - "Also operates as…" (same_brand / rebranded_from)
-  - "Previously known as…" (formerly_known_as)
+  - "Also operates asâ€¦" (same_brand / rebranded_from)
+  - "Previously known asâ€¦" (formerly_known_as)
   - "Related entities" (same_owner)
   - Each linked entity shows name + rating + city chip
-- `[ADMIN]` Entity detail: Relationships tab — add/edit/delete relationships with type selector
+- `[ADMIN]` Entity detail: Relationships tab â€” add/edit/delete relationships with type selector
 - `[ADMIN]` Visual relationship map: entity name nodes connected by relation type labels
 
 ### 2.3 Trust Summary API `[HIGH]`
 
-- `[API]` `GET /entities/:id/trust-summary` — returns:
+- `[API]` `GET /entities/:id/trust-summary` â€” returns:
   ```ts
   {
     trustScore: number;
@@ -386,12 +386,12 @@ Bad entities often change name, reopen under new pages, or operate under related
     verificationTierNext: string | null;
   }
   ```
-- Response rate labels: >80% → "Fast Responder" · >50% → "Usually Responds" · <20% → "Low Response Rate"
+- Response rate labels: >80% â†’ "Fast Responder" Â· >50% â†’ "Usually Responds" Â· <20% â†’ "Low Response Rate"
 - `[WEB]` Trust Overview: 4 KPI cards + sentiment sparkline + response rate label
 
-### 2.4 Owner Accountability Score — Public Display `[HIGH]`
+### 2.4 Owner Accountability Score â€” Public Display `[HIGH]`
 
-- `[API]` `GET /entities/:id/owner-accountability` — returns:
+- `[API]` `GET /entities/:id/owner-accountability` â€” returns:
   ```ts
   {
     avgFirstResponseHours: number | null;
@@ -407,7 +407,7 @@ Bad entities often change name, reopen under new pages, or operate under related
 
 ### 2.5 Review Summary API `[HIGH]`
 
-- `[API]` `GET /entities/:id/review-summary` — returns:
+- `[API]` `GET /entities/:id/review-summary` â€” returns:
   ```ts
   {
     ratingBreakdown: { 1: n, 2: n, 3: n, 4: n, 5: n };
@@ -425,11 +425,11 @@ Bad entities often change name, reopen under new pages, or operate under related
 ### 2.6 Entity Status Visibility `[HIGH]`
 
 - `[WEB]` Entity page: status badge per `EntityStatus`:
-  - `claimed` → "Claimed" chip
-  - `under_review` → warning banner
-  - `suspended` → full-page warning with reason
-  - `merged` → redirect to canonical + "This listing was merged into [X]"
-- `[WEB]` Verification tier badge: Level 1 "Claimed" · Level 2 "Email Verified" · Level 3 "Document Verified" · Level 4 "Admin Verified" (gold) · Level 5 "Trusted Owner" (special)
+  - `claimed` â†’ "Claimed" chip
+  - `under_review` â†’ warning banner
+  - `suspended` â†’ full-page warning with reason
+  - `merged` â†’ redirect to canonical + "This listing was merged into [X]"
+- `[WEB]` Verification tier badge: Level 1 "Claimed" Â· Level 2 "Email Verified" Â· Level 3 "Document Verified" Â· Level 4 "Admin Verified" (gold) Â· Level 5 "Trusted Owner" (special)
 
 ### 2.7 Suggest Entity Edit `[HIGH]`
 
@@ -453,26 +453,26 @@ Bad entities often change name, reopen under new pages, or operate under related
     @@map("entity_suggested_edits")
   }
   ```
-- `[API]` `POST /entities/:id/suggest-edits` · `GET /entities/:id/suggested-edits`
-- `[API]` `POST /admin/entities/:id/suggested-edits/:editId/approve` · `/reject`
+- `[API]` `POST /entities/:id/suggest-edits` Â· `GET /entities/:id/suggested-edits`
+- `[API]` `POST /admin/entities/:id/suggested-edits/:editId/approve` Â· `/reject`
 - `[WEB]` "Suggest an Edit" link on entity page (auth required)
 - `[ADMIN]` Entity detail: suggested edits queue tab
 
 ### 2.8 Duplicate Entity Report & Merge `[HIGH]`
 
-- `[API]` `POST /entities/:id/report-duplicate` — `{ duplicateEntityId, reason? }`
-- `[API]` `POST /admin/entities/duplicates/:id/merge` — `{ canonicalEntityId }`:
-  - Source → `status: merged`; create `EntityAlias` entries; move reviews/claims/followers to canonical
+- `[API]` `POST /entities/:id/report-duplicate` â€” `{ duplicateEntityId, reason? }`
+- `[API]` `POST /admin/entities/duplicates/:id/merge` â€” `{ canonicalEntityId }`:
+  - Source â†’ `status: merged`; create `EntityAlias` entries; move reviews/claims/followers to canonical
   - Emit `entity_merged` notification; audit log entry; 301 redirect for old URL
-- `[WEB]` Entity page overflow menu → "Report as duplicate"
+- `[WEB]` Entity page overflow menu â†’ "Report as duplicate"
 - `[ADMIN]` Duplicates queue at `/admin/entities/duplicates` with side-by-side comparison UI
 
 ### 2.9 Entity Map & "Open Now" `[HIGH]`
 
-- `[API]` `GET /search/entities` — add `openNow=true` filter (server-computed from hours + timezone)
+- `[API]` `GET /search/entities` â€” add `openNow=true` filter (server-computed from hours + timezone)
 - `[WEB]` Entity About tab: embedded map pin when lat/lng exist
 - `[WEB]` Search results: "Open Now" filter toggle + optional map view of entity pins per locality
-- `[WEB]` Entity header: "Open Now ●" / "Closed · Opens [day] [time]"
+- `[WEB]` Entity header: "Open Now â—" / "Closed Â· Opens [day] [time]"
 
 ### 2.10 Entity Verification Documents `[HIGH]`
 
@@ -496,61 +496,61 @@ Bad entities often change name, reopen under new pages, or operate under related
     @@map("entity_verification_documents")
   }
   ```
-- `[API]` `POST /entities/:id/verification-documents` · `GET /admin/entities/:id/verification-documents`
+- `[API]` `POST /entities/:id/verification-documents` Â· `GET /admin/entities/:id/verification-documents`
 - `[API]` `PATCH /admin/entities/:id/verification-documents/:docId/verify`
 - `[ADMIN]` Entity detail: Verification Documents tab with inline PDF/image viewer, per-doc verify action
 
 ### 2.11 Entity Comparison `[HIGH]`
 
-- `[API]` `GET /entities/compare?ids=id1,id2,id3` — comparison payload for up to 3 entities:
+- `[API]` `GET /entities/compare?ids=id1,id2,id3` â€” comparison payload for up to 3 entities:
   avg rating, trust score, review count, response rate, resolution rate, top positive/warning tags, category-specific ratings
-- `[WEB]` `/compare?entities=id1,id2` — side-by-side comparison page
+- `[WEB]` `/compare?entities=id1,id2` â€” side-by-side comparison page
 - `[WEB]` Entity page: "Compare with similar" CTA
 - `[WEB]` Search results: multi-select + "Compare selected" action
 
 ### 2.12 Similar & Nearby Entities `[MED]`
 
-- `[API]` `GET /entities/:id/similar` — ranked: same category+locality → same category+city → same category+nearby city
-- `[API]` `GET /entities/nearby?lat=&lng=&radius=&categoryKey?` — sorted by distance then trust score
+- `[API]` `GET /entities/:id/similar` â€” ranked: same category+locality â†’ same category+city â†’ same category+nearby city
+- `[API]` `GET /entities/nearby?lat=&lng=&radius=&categoryKey?` â€” sorted by distance then trust score
 - `[WEB]` Entity page: Similar Entities tab / side rail; Nearby tab when coordinates available
 
 ### 2.13 Salary Submissions `[MED]`
 
-- `[API]` `POST /entities/:entityId/salary-submissions` · `GET /entities/:entityId/salary-submissions`
+- `[API]` `POST /entities/:entityId/salary-submissions` Â· `GET /entities/:entityId/salary-submissions`
 - `[WEB]` Employer entity pages: "Salary Insights" tab with anonymized salary ranges per job title
 - `[ADMIN]` Entity detail: salary submissions tab
 
 ### 2.14 Trust Score Event Timeline `[MED]`
 
-- `[API]` `GET /entities/:id/trust/history` — sanitized public event timeline
+- `[API]` `GET /entities/:id/trust/history` â€” sanitized public event timeline
 - `[WEB]` Entity Trust & Verification tab: expandable timeline with human-readable labels
 
 ### 2.15 Entity Phone & Website Click Tracking `[LOW]`
 
-- `[API]` `POST /analytics/entities/:id/phone-click` · `POST /analytics/entities/:id/website-click` — fire-and-forget
+- `[API]` `POST /analytics/entities/:id/phone-click` Â· `POST /analytics/entities/:id/website-click` â€” fire-and-forget
 - `[WEB]` Phone/website: fire analytics event before opening `tel:` or external link
 - `[ADMIN]` Entity analytics: "Phone clicks" and "Website clicks" KPI cards
 
 ---
 
-## Phase 3 — Reviews Quality, Evidence & Lifecycle *(3–4 weeks)*
+## Phase 3 â€” Reviews Quality, Evidence & Lifecycle *(3â€“4 weeks)*
 
 **Goal:** Make reviews structured, credible, lifecycle-aware, evidence-backed, category-specific, and harder to fake.
 
 ### 3.1 Category-Specific Review Templates `[BLOCKER]`
 
-Different categories need different structured fields — this creates queryable, summarizable data without requiring AI:
+Different categories need different structured fields â€” this creates queryable, summarizable data without requiring AI:
 
-- `[DB]` Category extension review fields already exist (`categoryData` JSON on Review) — enforce typed schemas per category
+- `[DB]` Category extension review fields already exist (`categoryData` JSON on Review) â€” enforce typed schemas per category
 - `[WEB]` Review form: category-aware rated dimensions rendered from category config:
 
-  **Employer:** salary fairness · management behavior · work-life balance · career growth · job security · interview experience
-  **School:** teacher quality · fee transparency · discipline · facilities · safety · parent communication
-  **Clinic/Hospital/Doctor:** wait time · staff behavior · billing transparency · diagnosis confidence · cleanliness · emergency handling
-  **Landlord/Rental:** deposit return · maintenance responsiveness · privacy respect · rent increase fairness · agreement transparency
-  **Product:** durability · value for money · warranty service · authenticity concern · after-sales support
+  **Employer:** salary fairness Â· management behavior Â· work-life balance Â· career growth Â· job security Â· interview experience
+  **School:** teacher quality Â· fee transparency Â· discipline Â· facilities Â· safety Â· parent communication
+  **Clinic/Hospital/Doctor:** wait time Â· staff behavior Â· billing transparency Â· diagnosis confidence Â· cleanliness Â· emergency handling
+  **Landlord/Rental:** deposit return Â· maintenance responsiveness Â· privacy respect Â· rent increase fairness Â· agreement transparency
+  **Product:** durability Â· value for money Â· warranty service Â· authenticity concern Â· after-sales support
 
-- `[WEB]` Review form: category rating completion meter ("3/6 fields completed") — encourages structured data
+- `[WEB]` Review form: category rating completion meter ("3/6 fields completed") â€” encourages structured data
 - `[API]` Review create/edit DTO: validate `categoryData` shape against category-specific schema
 
 ### 3.2 Review Type `[HIGH]`
@@ -558,7 +558,7 @@ Different categories need different structured fields — this creates queryable
 - `[DB]` Add `reviewType String @default("experience") @map("review_type") @db.VarChar(30)` to `Review`
   - Values: `experience | complaint | warning | recommendation | question | update | resolution`
 - `[API]` Accept `reviewType` in create and edit
-- `[WEB]` Review form: optional type selector; review cards: type chip ("⚠️ Complaint", "✓ Recommendation")
+- `[WEB]` Review form: optional type selector; review cards: type chip ("âš ï¸ Complaint", "âœ“ Recommendation")
 
 ### 3.3 Structured Evidence Items `[HIGH]`
 
@@ -589,16 +589,16 @@ Replace raw image array with a proper evidence model that supports private/verif
   }
   ```
 - `[API]` On review submit: accept `evidenceItems[]` each with `evidenceType` + `visibility` + `fileUrl` (from presigned upload)
-- `[API]` `GET /admin/moderation/evidence-queue` — pending evidence items needing admin verification
-- `[API]` `PATCH /admin/evidence/:id` — `{ action: 'verify' | 'reject' | 'redact', redactedUrl? }`
-- `[WEB]` Review form: evidence upload with type selector per file + visibility toggle ("Public" / "Private — verified by admin only")
+- `[API]` `GET /admin/moderation/evidence-queue` â€” pending evidence items needing admin verification
+- `[API]` `PATCH /admin/evidence/:id` â€” `{ action: 'verify' | 'reject' | 'redact', redactedUrl? }`
+- `[WEB]` Review form: evidence upload with type selector per file + visibility toggle ("Public" / "Private â€” verified by admin only")
 - `[WEB]` Review cards:
-  - "Evidence attached" chip → shows public evidence
+  - "Evidence attached" chip â†’ shows public evidence
   - "Private evidence verified by admin" badge when `status = verified` + `visibility = private_admin`
 - `[WEB]` Private evidence UI: user uploads sensitive document (e.g. salary slip, patient record), it is never shown publicly; admin verifies it and sets review badge
 - `[ADMIN]` Evidence queue page: per-item viewer, redact sensitive areas, verify/reject actions
 
-### 3.4 Review Quality Score — Full Implementation `[HIGH]`
+### 3.4 Review Quality Score â€” Full Implementation `[HIGH]`
 
 - `[DB]` Expand `ReviewQualityScore`:
   ```prisma
@@ -615,7 +615,7 @@ Replace raw image array with a proper evidence model that supports private/verif
   calculatedAt          DateTime @default(now())
   ```
 - Quality labels: `low_quality | basic | detailed | evidence_backed | trusted`
-- `fakeScore` formula: `spamPenalty + duplicatePenalty + (1 - reviewerTrustScore) + autoFlagCount × 0.1`
+- `fakeScore` formula: `spamPenalty + duplicatePenalty + (1 - reviewerTrustScore) + autoFlagCount Ã— 0.1`
 - `[API]` Background job: recalculate on review create/edit/vote/report/validation
 - `[WEB]` Review cards: quality badge per label; `evidence_backed` and `trusted` get prominent styling; `low_quality` gets reduced visual weight
 - `[ADMIN]` Review detail: quality score breakdown + fake score panel; sortable `fakeScore` column in review list
@@ -644,9 +644,9 @@ Replace raw image array with a proper evidence model that supports private/verif
   - **Profanity check:** match against configurable word list (admin-managed via `/admin/moderation/word-filters`)
   - **Duplicate text:** `pg_trgm` trigram similarity >0.8 against last 50 reviews on same entity
   - **Toxicity score:** all-caps / excessive punctuation / length check
-- If flagged → create `ReviewFlag`, set `moderationState = 'auto_flagged'`, create `ModerationCase`
+- If flagged â†’ create `ReviewFlag`, set `moderationState = 'auto_flagged'`, create `ModerationCase`
 - `[ADMIN]` Moderation queue: "Auto-flagged" sub-queue; review detail: auto-detection flags panel with matched snippet and redact/dismiss actions
-- `[ADMIN]` `/admin/moderation/word-filters` — configurable profanity/spam phrase list with bulk import
+- `[ADMIN]` `/admin/moderation/word-filters` â€” configurable profanity/spam phrase list with bulk import
 
 ### 3.6 Review Update (Append, Not Replace) `[HIGH]`
 
@@ -666,12 +666,12 @@ Replace raw image array with a proper evidence model that supports private/verif
     @@map("review_updates")
   }
   ```
-- `[API]` `POST /reviews/:id/updates` — author only, max 3 updates per review
+- `[API]` `POST /reviews/:id/updates` â€” author only, max 3 updates per review
 - `[WEB]` Review detail: chronological timeline showing original review + updates; "Add Update" distinct from "Edit Review"
 
 ### 3.7 Correction / Right-of-Reply Flow `[HIGH]`
 
-Formal process for disputed content — reduces legal risk and gives owners fair recourse:
+Formal process for disputed content â€” reduces legal risk and gives owners fair recourse:
 
 - `[DB]` New model:
   ```prisma
@@ -692,10 +692,10 @@ Formal process for disputed content — reduces legal risk and gives owners fair
     @@map("review_correction_requests")
   }
   ```
-- `[API]` `POST /reviews/:id/correction-request` — owner only (must own entity the review is on)
+- `[API]` `POST /reviews/:id/correction-request` â€” owner only (must own entity the review is on)
 - `[API]` Notification to reviewer on new correction request with: edit / add evidence / reject options
-- `[API]` `PATCH /reviews/:id/correction-request/:reqId` — reviewer response: `{ action: 'edit' | 'add_evidence' | 'reject', response? }`
-- `[API]` `GET /admin/reviews/correction-requests` · `PATCH /admin/reviews/correction-requests/:id`
+- `[API]` `PATCH /reviews/:id/correction-request/:reqId` â€” reviewer response: `{ action: 'edit' | 'add_evidence' | 'reject', response? }`
+- `[API]` `GET /admin/reviews/correction-requests` Â· `PATCH /admin/reviews/correction-requests/:id`
 - Admin actions on correction: keep / hide / redact / request evidence / mark legal-sensitive
 - `[WEB]` Owner review management: "Request Correction" option per review with type selector + evidence upload
 - `[WEB]` Reviewer notification: "Owner has requested a correction on your review at [Entity]" with inline response form
@@ -716,7 +716,7 @@ Formal process for disputed content — reduces legal risk and gives owners fair
     @@map("review_drafts")
   }
   ```
-- `[API]` `POST /reviews/drafts` · `PATCH /reviews/drafts/:id` · `DELETE /reviews/drafts/:id` · `GET /reviews/drafts/entity/:entityId`
+- `[API]` `POST /reviews/drafts` Â· `PATCH /reviews/drafts/:id` Â· `DELETE /reviews/drafts/:id` Â· `GET /reviews/drafts/entity/:entityId`
 - `[WEB]` Review form: debounced autosave to `localStorage` (immediate) + API (every 30s); "Continue draft?" restore banner
 
 ### 3.9 Review Form Improvements `[HIGH]`
@@ -727,34 +727,34 @@ Formal process for disputed content — reduces legal risk and gives owners fair
 
 ### 3.10 Community Validation UI `[MED]`
 
-- `[WEB]` Validation button: 3-option picker — "I had a similar experience" · "This seems outdated" · "Issue was resolved"
-- `[WEB]` Review card: "12 confirmed this · 3 say outdated"
+- `[WEB]` Validation button: 3-option picker â€” "I had a similar experience" Â· "This seems outdated" Â· "Issue was resolved"
+- `[WEB]` Review card: "12 confirmed this Â· 3 say outdated"
 
 ### 3.11 IssueResolution Full Flow `[MED]`
 
-- `[WEB]` Review card: if `resolved_by_owner` → "Owner marked as resolved" with CTA to confirm or dispute
-- `[API]` `PATCH /reviews/:reviewId/issue-resolution` — `{ action: 'confirm' | 'dispute' }` — reviewer only
+- `[WEB]` Review card: if `resolved_by_owner` â†’ "Owner marked as resolved" with CTA to confirm or dispute
+- `[API]` `PATCH /reviews/:reviewId/issue-resolution` â€” `{ action: 'confirm' | 'dispute' }` â€” reviewer only
 - `[WEB]` Owner dashboard: "Mark as Resolved" button per review
 
 ### 3.12 @Mention in Comments `[MED]`
 
 - `[DB]` Add `mentionedUserIds String[] @default([])` to `ReviewComment` and `DiscussionComment`
-- `[API]` Parse `@username` in comment body → resolve to userId array, emit `mention_notification`
+- `[API]` Parse `@username` in comment body â†’ resolve to userId array, emit `mention_notification`
 - `[WEB]` Comment input: `@` triggers user typeahead; render `@username` as clickable chip
 
 ### 3.13 Review Share Card `[LOW]`
 
-- `[API]` `GET /reviews/:id/share-card` — server-rendered OG-image (entity name, stars, snippet, watermark)
-- `[WEB]` Review overflow: "Share Review" → share image + `navigator.share` or copy link
+- `[API]` `GET /reviews/:id/share-card` â€” server-rendered OG-image (entity name, stars, snippet, watermark)
+- `[WEB]` Review overflow: "Share Review" â†’ share image + `navigator.share` or copy link
 
 ### 3.14 Admin Review Detail Enhancement `[MED]`
 
-- `[ADMIN]` Review detail additions: quality breakdown · fake score · evidence items queue · PII flags · correction requests · community validation breakdown · owner reply + issue resolution · review updates timeline · moderation action history
+- `[ADMIN]` Review detail additions: quality breakdown Â· fake score Â· evidence items queue Â· PII flags Â· correction requests Â· community validation breakdown Â· owner reply + issue resolution Â· review updates timeline Â· moderation action history
 - `[ADMIN]` Review moderation actions: add `request_edit`, `mark_legal_sensitive`, `redact_personal_information`
 
 ---
 
-## Phase 4 — Feed, Community & Discussions *(3–4 weeks)*
+## Phase 4 â€” Feed, Community & Discussions *(3â€“4 weeks)*
 
 **Goal:** Mixed reputation activity feed. Discussions linked to entities/categories/cities. Polls, Q&A in discussions, community identity as a reputation hub.
 
@@ -766,7 +766,7 @@ Formal process for disputed content — reduces legal risk and gives owners fair
 /community   = reputation hub: leaderboard, contributors, local/category groups
 ```
 
-### 4.1 Mixed Activity Feed — FeedItem Model `[BLOCKER]`
+### 4.1 Mixed Activity Feed â€” FeedItem Model `[BLOCKER]`
 
 - `[DB]` New models:
   ```prisma
@@ -802,12 +802,12 @@ Formal process for disputed content — reduces legal risk and gives owners fair
     @@map("feed_hides")
   }
   ```
-- `[API]` `GET /feed` · `GET /feed/me` — query `FeedItem`, personalize by follow graph, exclude `FeedHide`
+- `[API]` `GET /feed` Â· `GET /feed/me` â€” query `FeedItem`, personalize by follow graph, exclude `FeedHide`
 - Tabs: `for_you | following | nearby | trending | latest | verified`
 
 ### 4.2 Feed Cards by Item Type `[BLOCKER]`
 
-- `[WEB]` Per `itemType` card components, including: `owner_post_published` → "Owner posted an update at [Entity]" card; `entity_question_answered` → "[Owner] answered a question at [Entity]" card
+- `[WEB]` Per `itemType` card components, including: `owner_post_published` â†’ "Owner posted an update at [Entity]" card; `entity_question_answered` â†’ "[Owner] answered a question at [Entity]" card
 
 ### 4.3 Discussion Entity/Category/City Linking `[BLOCKER]`
 
@@ -824,8 +824,8 @@ Formal process for disputed content — reduces legal risk and gives owners fair
   resolvedAt        DateTime? @map("resolved_at")
   resolvedCommentId String?   @map("resolved_comment_id") @db.Uuid
   ```
-- `[API]` `POST /discussions` — accept all new fields
-- `[API]` `GET /entities/:id/discussions` — entity-linked discussions
+- `[API]` `POST /discussions` â€” accept all new fields
+- `[API]` `GET /entities/:id/discussions` â€” entity-linked discussions
 - `[WEB]` Discussion create: "Link to entity/category/city" typeahead; discussion cards: linked entity chip
 
 ### 4.4 Discussion Polls `[HIGH]`
@@ -859,18 +859,18 @@ Formal process for disputed content — reduces legal risk and gives owners fair
     @@map("discussion_poll_votes")
   }
   ```
-- `[API]` `POST /discussions` — accept optional `poll: { question, options[], endsAt? }`
-- `[API]` `POST /discussions/:id/poll/vote` · `GET /discussions/:id/poll/results`
+- `[API]` `POST /discussions` â€” accept optional `poll: { question, options[], endsAt? }`
+- `[API]` `POST /discussions/:id/poll/vote` Â· `GET /discussions/:id/poll/results`
 - `[WEB]` Discussion create: "Add a poll" toggle; discussion card: live vote counts per option
 
 ### 4.5 Discussion "Resolved / Answered" Flag `[HIGH]`
 
-- `[API]` `PATCH /discussions/:id/resolve` — `{ resolvedCommentId }` — author only
-- `[WEB]` Discussion type `question`: "Mark as Answered" for author; "Answered ✓" chip when resolved; resolved comment highlighted
+- `[API]` `PATCH /discussions/:id/resolve` â€” `{ resolvedCommentId }` â€” author only
+- `[WEB]` Discussion type `question`: "Mark as Answered" for author; "Answered âœ“" chip when resolved; resolved comment highlighted
 
 ### 4.6 Discussion Edit, Delete & Search `[HIGH]`
 
-- `[API]` `PATCH /discussions/:id` · `DELETE /discussions/:id` — author only (edit within 24h, soft-delete)
+- `[API]` `PATCH /discussions/:id` Â· `DELETE /discussions/:id` â€” author only (edit within 24h, soft-delete)
 - `[API]` `GET /discussions/search?q=&categoryKey=&entityId=&cityId=&discussionType=`
 - `[WEB]` Discussions page: search with debounce; global `/search`: "Discussions" tab
 
@@ -881,8 +881,8 @@ Formal process for disputed content — reduces legal risk and gives owners fair
 
 ### 4.8 Community Page `[HIGH]`
 
-- `[WEB]` `/community`: Trusted Contributors · Leaderboard · City Communities · Category Communities · Trending Discussions · Weekly Top Reviewers
-- Remove review feed cards from community — they belong in `/feed`
+- `[WEB]` `/community`: Trusted Contributors Â· Leaderboard Â· City Communities Â· Category Communities Â· Trending Discussions Â· Weekly Top Reviewers
+- Remove review feed cards from community â€” they belong in `/feed`
 
 ### 4.9 Saved Searches with Alerts `[HIGH]`
 
@@ -900,13 +900,13 @@ Formal process for disputed content — reduces legal risk and gives owners fair
     @@map("saved_searches")
   }
   ```
-- `[API]` `POST /me/saved-searches` · `GET /me/saved-searches` · `PATCH /me/saved-searches/:id` · `DELETE /me/saved-searches/:id`
+- `[API]` `POST /me/saved-searches` Â· `GET /me/saved-searches` Â· `PATCH /me/saved-searches/:id` Â· `DELETE /me/saved-searches/:id`
 - `[API]` Weekly job: for `alertsEnabled` saved searches, run query, notify on new results since `lastNotifiedAt`
 - `[WEB]` Search page: "Save this search" button; `/dashboard/my-list` gets a "Saved Searches" tab
 
 ### 4.10 Feed Hide & Socket Events `[MED]`
 
-- `[API]` `POST /feed/hide` — `{ refType, refId }` — writes `FeedHide`
+- `[API]` `POST /feed/hide` â€” `{ refType, refId }` â€” writes `FeedHide`
 - `[WEB]` Feed card overflow: "Not interested in [entity name]" / "Hide posts from this user"
 - `[API]` Emit `feed:new_item` with `itemType` discriminator; `[CLIENT]` render correct card per type
 
@@ -917,7 +917,7 @@ Formal process for disputed content — reduces legal risk and gives owners fair
 
 ---
 
-## Phase 5 — Claims, Owner Dashboard & Team *(3–4 weeks)*
+## Phase 5 â€” Claims, Owner Dashboard & Team *(3â€“4 weeks)*
 
 **Goal:** Multi-level claims, owner action center, team management, Q&A, owner posts, invite improvements.
 
@@ -925,7 +925,7 @@ Formal process for disputed content — reduces legal risk and gives owners fair
 
 | Level | Name | Method |
 |---|---|---|
-| 0 | Unclaimed | — |
+| 0 | Unclaimed | â€” |
 | 1 | Basic Claimed | phone OTP |
 | 2 | Business Verified | official email / domain |
 | 3 | Document Verified | business registration doc |
@@ -941,9 +941,9 @@ Formal process for disputed content — reduces legal risk and gives owners fair
   revokedReason             String?  @map("revoked_reason") @db.VarChar(500)
   transferRequestedToUserId String?  @map("transfer_requested_to_user_id") @db.Uuid
   ```
-- `[API]` Multi-step claim wizard: `POST /entities/:id/claims` — `{ verificationMethod: 'phone_otp' | 'business_email' | 'document_upload' }`
+- `[API]` Multi-step claim wizard: `POST /entities/:id/claims` â€” `{ verificationMethod: 'phone_otp' | 'business_email' | 'document_upload' }`
 - `[API]` `POST /entities/:id/claims/:claimId/resubmit`
-- `[WEB]` Claim flow: choose method → verify → confirmation + verification tier ladder showing next steps to advance
+- `[WEB]` Claim flow: choose method â†’ verify â†’ confirmation + verification tier ladder showing next steps to advance
 - `[ADMIN]` Claim detail: verification method, submitted docs, existing owners, history; approve/reject with reason; `resubmissionAllowed` toggle
 
 ### 5.2 Owner Team Management `[HIGH]`
@@ -968,29 +968,29 @@ Required for clinics, schools, companies, and agencies:
     @@map("owner_team_members")
   }
   ```
-- `[API]` `POST /owner/entities/:id/team` — `{ email, role, permissions[] }` — invite by email
-- `[API]` `GET /owner/entities/:id/team` · `PATCH /owner/entities/:id/team/:memberId` · `DELETE /owner/entities/:id/team/:memberId`
+- `[API]` `POST /owner/entities/:id/team` â€” `{ email, role, permissions[] }` â€” invite by email
+- `[API]` `GET /owner/entities/:id/team` Â· `PATCH /owner/entities/:id/team/:memberId` Â· `DELETE /owner/entities/:id/team/:memberId`
 - `[API]` All owner-facing mutations: check `OwnerTeamMember.permissions` for caller
 - `[API]` Audit log: record which team member performed each action (reply, edit, export)
-- `[WEB]` `/owner/entities/[id]/team` — team management page: invite form, member list, role editor, permission matrix
+- `[WEB]` `/owner/entities/[id]/team` â€” team management page: invite form, member list, role editor, permission matrix
 - `[ADMIN]` Entity detail: team members tab
 
 ### 5.3 Owner Route Restructure `[HIGH]`
 
 ```
-/owner/entities                    → list of owned entities
-/owner/entities/[id]               → action center + KPIs
-/owner/entities/[id]/reviews       → review management
-/owner/entities/[id]/analytics     → analytics
-/owner/entities/[id]/profile       → edit entity profile
-/owner/entities/[id]/invites       → review invites
-/owner/entities/[id]/team          → team management
-/owner/entities/[id]/verification  → claim status + tier ladder
-/owner/entities/[id]/posts         → owner posts
-/owner/entities/[id]/qa            → Q&A queue
+/owner/entities                    â†’ list of owned entities
+/owner/entities/[id]               â†’ action center + KPIs
+/owner/entities/[id]/reviews       â†’ review management
+/owner/entities/[id]/analytics     â†’ analytics
+/owner/entities/[id]/profile       â†’ edit entity profile
+/owner/entities/[id]/invites       â†’ review invites
+/owner/entities/[id]/team          â†’ team management
+/owner/entities/[id]/verification  â†’ claim status + tier ladder
+/owner/entities/[id]/posts         â†’ owner posts
+/owner/entities/[id]/qa            â†’ Q&A queue
 ```
 
-- `[WEB]` Redirect `/entities/[id]/owner-dashboard` → `/owner/entities/[id]` (301)
+- `[WEB]` Redirect `/entities/[id]/owner-dashboard` â†’ `/owner/entities/[id]` (301)
 
 ### 5.4 Owner Action Center `[HIGH]`
 
@@ -1013,7 +1013,7 @@ Required for clinics, schools, companies, and agencies:
 
 ### 5.5 Owner KPIs `[HIGH]`
 
-- `[WEB]` KPI grid: Avg Rating · Trust Score · Total Reviews · New This Month · Negative Reviews · Unanswered Reviews · Response Rate · Avg Response Time · Resolved Complaints · Follower Count · Profile Views · Search Appearances
+- `[WEB]` KPI grid: Avg Rating Â· Trust Score Â· Total Reviews Â· New This Month Â· Negative Reviews Â· Unanswered Reviews Â· Response Rate Â· Avg Response Time Â· Resolved Complaints Â· Follower Count Â· Profile Views Â· Search Appearances
 - `[WEB]` Trust score + accountability score sparklines (last 30 days)
 - `[WEB]` Benchmarking card: "How you compare to similar entities in [city]" (from Phase 15 benchmark API)
 
@@ -1041,8 +1041,8 @@ Required for clinics, schools, companies, and agencies:
     @@map("owner_posts")
   }
   ```
-- `[API]` `POST /owner/entities/:id/posts` · `GET /owner/entities/:id/posts` · `PATCH` · `DELETE`
-- `[API]` `GET /entities/:id/owner-posts` — public, returns published non-expired posts
+- `[API]` `POST /owner/entities/:id/posts` Â· `GET /owner/entities/:id/posts` Â· `PATCH` Â· `DELETE`
+- `[API]` `GET /entities/:id/owner-posts` â€” public, returns published non-expired posts
 - `[WEB]` Entity page: "Updates from Owner" section showing latest 3 posts with expand
 - `[ADMIN]` Entity detail: Owner Posts tab; hide/remove posts that violate guidelines
 
@@ -1075,13 +1075,13 @@ Required for clinics, schools, companies, and agencies:
     @@map("entity_answers")
   }
   ```
-- `[API]` `POST /entities/:id/questions` · `GET /entities/:id/questions` · `DELETE /entities/:id/questions/:questionId`
-- `[API]` `POST /entities/:id/questions/:questionId/answers` · `POST /entities/:id/questions/:questionId/upvote`
-- `[API]` On new question → emit `new_entity_question` notification to entity owners
-- `[API]` On owner answer → emit `question_answered` to question asker
-- `[WEB]` Entity page: "Q&A" tab — ask question CTA, list sorted by upvotes, owner answers highlighted + pinned
+- `[API]` `POST /entities/:id/questions` Â· `GET /entities/:id/questions` Â· `DELETE /entities/:id/questions/:questionId`
+- `[API]` `POST /entities/:id/questions/:questionId/answers` Â· `POST /entities/:id/questions/:questionId/upvote`
+- `[API]` On new question â†’ emit `new_entity_question` notification to entity owners
+- `[API]` On owner answer â†’ emit `question_answered` to question asker
+- `[WEB]` Entity page: "Q&A" tab â€” ask question CTA, list sorted by upvotes, owner answers highlighted + pinned
 - `[WEB]` Q&A contributes to JSON-LD `FAQPage` schema (Phase 9)
-- `[WEB]` Owner dashboard: `/owner/entities/[id]/qa` — unanswered questions queue
+- `[WEB]` Owner dashboard: `/owner/entities/[id]/qa` â€” unanswered questions queue
 - `[ADMIN]` Q&A moderation: hide/remove inappropriate questions or answers
 
 ### 5.8 Claim Dispute & Transfer `[HIGH]`
@@ -1101,19 +1101,19 @@ Required for clinics, schools, companies, and agencies:
     @@map("claim_disputes")
   }
   ```
-- `[API]` `POST /entities/:id/claims/:claimId/dispute` · `POST /entities/:id/claims/:claimId/transfer`
+- `[API]` `POST /entities/:id/claims/:claimId/dispute` Â· `POST /entities/:id/claims/:claimId/transfer`
 - `[WEB]` Entity page: "Report incorrect ownership" option
 - `[ADMIN]` Claim disputes queue at `/admin/claims/disputes`
 
 ### 5.9 Owner Review Management `[MED]`
 
 - `[WEB]` Owner reviews tab filters: rating, unanswered, negative, resolved, has evidence, date range
-- `[WEB]` Review row actions: Reply · Use Template · Mark Resolved · Request Correction
-- `[WEB]` Template auto-suggest based on rating: 1–2 stars → negative templates first; 5 stars → positive first
+- `[WEB]` Review row actions: Reply Â· Use Template Â· Mark Resolved Â· Request Correction
+- `[WEB]` Template auto-suggest based on rating: 1â€“2 stars â†’ negative templates first; 5 stars â†’ positive first
 
 ### 5.10 Review Invite Enhancement `[MED]`
 
-- `[API]` `POST /entities/:id/invites` — accept `maxUses?`, `expiresAt?`, `label?`, `channel?`
+- `[API]` `POST /entities/:id/invites` â€” accept `maxUses?`, `expiresAt?`, `label?`, `channel?`
 - `[WEB]` Invites page: per-invite stats (opens, conversions, status, expiry); creation form with all fields
 - `[WEB]` QR code (`qrcode` npm), WhatsApp share link, copy button
 
@@ -1135,13 +1135,13 @@ Required for clinics, schools, companies, and agencies:
     @@map("watchlist_alerts")
   }
   ```
-- `[API]` `POST /me/watchlist-alerts` · `GET /me/watchlist-alerts` · `DELETE /me/watchlist-alerts/:id`
+- `[API]` `POST /me/watchlist-alerts` Â· `GET /me/watchlist-alerts` Â· `DELETE /me/watchlist-alerts/:id`
 - `[API]` Background job: evaluate triggers on entity trust recalc + new review + status change
-- `[WEB]` Entity page: "Set Alert" in follow/save dropdown; `/dashboard/my-list` → Watchlist tab
+- `[WEB]` Entity page: "Set Alert" in follow/save dropdown; `/dashboard/my-list` â†’ Watchlist tab
 
 ---
 
-## Phase 6 — Reputation, Streaks, Badges & Notifications *(3–4 weeks)*
+## Phase 6 â€” Reputation, Streaks, Badges & Notifications *(3â€“4 weeks)*
 
 **Goal:** Unified reputation layer. Streaks meaningful only when connected to quality actions, helpful votes, validations, and badges. Notifications controlled and actionable.
 
@@ -1149,8 +1149,8 @@ Required for clinics, schools, companies, and agencies:
 
 ### 6.1 Streak Quality Weighting `[HIGH]`
 
-- `[API]` New quality `activityType` values: `review_with_evidence` (3×), `community_validation` (2×), `constructive_comment` (1×, body ≥50 chars), `report_confirmed` (2×), `profile_completed` (one-time 5×), `detailed_review` (2×, quality ≥0.7)
-- Reduce points for `feed_visit` and `active_time` — passive signals
+- `[API]` New quality `activityType` values: `review_with_evidence` (3Ã—), `community_validation` (2Ã—), `constructive_comment` (1Ã—, body â‰¥50 chars), `report_confirmed` (2Ã—), `profile_completed` (one-time 5Ã—), `detailed_review` (2Ã—, quality â‰¥0.7)
+- Reduce points for `feed_visit` and `active_time` â€” passive signals
 - `[API]` `activityType: 'share'` eligible only when linked to entity/review/discussion (not generic)
 
 ### 6.2 Streak Shield / Freeze `[HIGH]`
@@ -1162,18 +1162,18 @@ Required for clinics, schools, companies, and agencies:
 ### 6.3 Expand Follow Target Types `[HIGH]`
 
 - `[DB]` Update `FollowTargetType` enum: add `city`, `user`, `tag`, `discussion`
-- `[API]` `POST /follows` — validate per `targetType`; `GET /me/follows` — grouped by type
-- `[API]` `GET /users/:id/followers` · `GET /users/:id/following`
+- `[API]` `POST /follows` â€” validate per `targetType`; `GET /me/follows` â€” grouped by type
+- `[API]` `GET /users/:id/followers` Â· `GET /users/:id/following`
 - `[WEB]` City pages: "Follow this city"; tag chips: "Follow this tag"; discussion cards: "Follow discussion"
 
-### 6.4 User Follow — Feed & Notifications `[HIGH]`
+### 6.4 User Follow â€” Feed & Notifications `[HIGH]`
 
-- `[API]` `GET /feed/me` — include `FeedItem` from followed users' reviews + discussions
-- `[API]` On followed user publish → emit `new_review_on_followed` notification
+- `[API]` `GET /feed/me` â€” include `FeedItem` from followed users' reviews + discussions
+- `[API]` On followed user publish â†’ emit `new_review_on_followed` notification
 
 ### 6.5 Follow Recommendations `[HIGH]`
 
-- `[API]` `GET /recommendations/follows` — based on onboarding category + city: top-rated entities, popular reviewers, trending tags
+- `[API]` `GET /recommendations/follows` â€” based on onboarding category + city: top-rated entities, popular reviewers, trending tags
 - `[WEB]` Post-onboarding: "Suggested for you" step; empty feed state: follow recommendations widget
 
 ### 6.6 User Reputation Score `[HIGH]`
@@ -1197,17 +1197,17 @@ Required for clinics, schools, companies, and agencies:
     @@map("user_reputation_scores")
   }
   ```
-- Formula: `publishedReviews + helpfulVotesReceived + (evidenceBackedReviews×2) + communityConfirmations + (acceptedReports×2) + resolvedIssues - (removedReviews×3) - (confirmedSpam×5)`
-- `[API]` `GET /users/:id/reputation` — public summary
+- Formula: `publishedReviews + helpfulVotesReceived + (evidenceBackedReviewsÃ—2) + communityConfirmations + (acceptedReportsÃ—2) + resolvedIssues - (removedReviewsÃ—3) - (confirmedSpamÃ—5)`
+- `[API]` `GET /users/:id/reputation` â€” public summary
 
 ### 6.7 Reputation Dashboard Page `[HIGH]`
 
-- `[WEB]` New route `/dashboard/reputation` — merges badges + streaks + reputation:
-  - Current Streak · Longest Streak · Shield Count · Contribution Score
-  - Badge Grid · Global Rank · Following Rank · Next Milestone progress
+- `[WEB]` New route `/dashboard/reputation` â€” merges badges + streaks + reputation:
+  - Current Streak Â· Longest Streak Â· Shield Count Â· Contribution Score
+  - Badge Grid Â· Global Rank Â· Following Rank Â· Next Milestone progress
   - Reputation event timeline
   - Streak milestone celebration: confetti + "You earned a badge!" modal
-- `[WEB]` Redirect `/dashboard/badges` and `/dashboard/streaks` → `/dashboard/reputation`
+- `[WEB]` Redirect `/dashboard/badges` and `/dashboard/streaks` â†’ `/dashboard/reputation`
 
 ### 6.8 Notification Preferences `[HIGH]`
 
@@ -1222,16 +1222,16 @@ Required for clinics, schools, companies, and agencies:
     @@map("notification_preferences")
   }
   ```
-- `[API]` `GET /me/notification-preferences` · `PATCH /me/notification-preferences`
+- `[API]` `GET /me/notification-preferences` Â· `PATCH /me/notification-preferences`
 - `[API]` All notification emit paths: check preferences before sending
 
 ### 6.9 Web Push Notifications `[HIGH]`
 
 - `[DB]` Add to `UserDevice`: `pushSubscriptionJson Json?`, `pushEnabled Boolean @default(false)`
-- `[API]` `POST /me/push-subscription` · `DELETE /me/push-subscription`
+- `[API]` `POST /me/push-subscription` Â· `DELETE /me/push-subscription`
 - `[API]` All notification emit paths: send Web Push via `web-push` when subscription active + prefs allow
 - `[WEB]` Push permission prompt after 2+ minutes of active use post-login (not on first page load)
-- Service worker (Phase 10): `push` event handler → show notification with entity name + snippet
+- Service worker (Phase 10): `push` event handler â†’ show notification with entity name + snippet
 
 ### 6.10 Email Notification Templates `[HIGH]`
 
@@ -1251,18 +1251,18 @@ Required for clinics, schools, companies, and agencies:
   ```
 - Template keys: `review_reply_received`, `claim_approved`, `claim_rejected`, `new_helpful_vote`, `badge_earned`, `mention_in_comment`, `weekly_recap`, `watchlist_alert`, `account_suspended`, `correction_request`
 - `[API]` Email service: resolve template by key, interpolate variables, send via transactional provider (Resend/SES)
-- `[ADMIN]` `/admin/email-templates` — edit subject + body, preview with test data, send test email
+- `[ADMIN]` `/admin/email-templates` â€” edit subject + body, preview with test data, send test email
 
 ### 6.11 Notification UI Improvements `[HIGH]`
 
 - `[WEB]` "Mark all as read"; filter by type (reviews, discussions, claims, badges, system)
 - `[WEB]` Notification grouping: "3 people voted your review helpful"
-- `[WEB]` `/dashboard/notification-settings` — notification preferences page
+- `[WEB]` `/dashboard/notification-settings` â€” notification preferences page
 
 ### 6.12 My List Dashboard Page `[MED]`
 
-- `[WEB]` New route `/dashboard/my-list` with tabs: Saved Entities · Followed Entities · Followed Categories · Followed Cities · Followed Users · Followed Tags · Followed Discussions · Saved Searches · Watchlist Alerts
-- `[WEB]` Redirect `/dashboard/saved` and `/dashboard/follows` → `/dashboard/my-list`
+- `[WEB]` New route `/dashboard/my-list` with tabs: Saved Entities Â· Followed Entities Â· Followed Categories Â· Followed Cities Â· Followed Users Â· Followed Tags Â· Followed Discussions Â· Saved Searches Â· Watchlist Alerts
+- `[WEB]` Redirect `/dashboard/saved` and `/dashboard/follows` â†’ `/dashboard/my-list`
 
 ### 6.13 Weekly Digest `[MED]`
 
@@ -1271,13 +1271,13 @@ Required for clinics, schools, companies, and agencies:
 
 ---
 
-## Phase 7 — Search, Discovery & Comparison *(2–3 weeks)*
+## Phase 7 â€” Search, Discovery & Comparison *(2â€“3 weeks)*
 
 **Goal:** Make search the primary acquisition and re-engagement channel. Autocomplete, advanced filters, comparison, zero-result conversion, search analytics.
 
 ### 7.1 Entity Autocomplete API `[BLOCKER]`
 
-- `[API]` `GET /search/entities/autocomplete?q=&cityId?&categoryKey?` — top 5 suggestions with logo, category, city, rating — optimized for <100ms
+- `[API]` `GET /search/entities/autocomplete?q=&cityId?&categoryKey?` â€” top 5 suggestions with logo, category, city, rating â€” optimized for <100ms
 - `[WEB]` Global search bar: inline dropdown autocomplete with keyboard navigation
 - `[WEB]` Review form entity selector: uses autocomplete
 
@@ -1289,14 +1289,14 @@ Required for clinics, schools, companies, and agencies:
 
 ### 7.3 Search by Phone Number `[HIGH]`
 
-- `[API]` `GET /search/entities?phone=<normalized>` — look up entity by phone (E.164)
+- `[API]` `GET /search/entities?phone=<normalized>` â€” look up entity by phone (E.164)
 - `[WEB]` Search page: "Search by phone number" tab
 
 ### 7.4 Related Searches `[HIGH]`
 
-- `[API]` `GET /search/related?q=&categoryKey=&cityId=` — other queries users made after this query; other categories explored
+- `[API]` `GET /search/related?q=&categoryKey=&cityId=` â€” other queries users made after this query; other categories explored
 - `[WEB]` Search results: "People also searched for" chip row
-- `[WEB]` Zero-results page: "Try these related searches" + "Be the first to add an entity here" → pre-filled entity create form
+- `[WEB]` Zero-results page: "Try these related searches" + "Be the first to add an entity here" â†’ pre-filled entity create form
 
 ### 7.5 Search Analytics `[HIGH]`
 
@@ -1317,35 +1317,35 @@ Required for clinics, schools, companies, and agencies:
     @@map("search_query_logs")
   }
   ```
-- `[API]` `GET /search/entities` — write `SearchQueryLog` fire-and-forget after query
-- `[API]` `POST /analytics/search/click` — `{ queryLogId, entityId }`
+- `[API]` `GET /search/entities` â€” write `SearchQueryLog` fire-and-forget after query
+- `[API]` `POST /analytics/search/click` â€” `{ queryLogId, entityId }`
 - `[ADMIN]` `/admin/search-analytics`: top zero-result queries (entity creation opportunities), top queries, click-through rate per query
 
 ### 7.6 Entity Comparison `[HIGH]`
 
-- `[API]` `GET /entities/compare?ids=id1,id2,id3` — comparison payload for up to 3 entities
-- `[WEB]` `/compare?entities=id1,id2` — side-by-side: rating, trust score, review count, response rate, resolution rate, top tags
+- `[API]` `GET /entities/compare?ids=id1,id2,id3` â€” comparison payload for up to 3 entities
+- `[WEB]` `/compare?entities=id1,id2` â€” side-by-side: rating, trust score, review count, response rate, resolution rate, top tags
 - `[WEB]` Entity page: "Compare with similar" CTA; search results: multi-select + "Compare selected"
 
 ### 7.7 Nearby Entities `[MED]`
 
-- `[API]` `GET /entities/nearby?lat=&lng=&radius=&categoryKey?` — sorted by distance then trust score
+- `[API]` `GET /entities/nearby?lat=&lng=&radius=&categoryKey?` â€” sorted by distance then trust score
 - `[WEB]` Home page: "Near you" section (browser geolocation prompt)
 
-### 7.8 Zero-Result → Entity Creation `[MED]`
+### 7.8 Zero-Result â†’ Entity Creation `[MED]`
 
-- `[WEB]` Zero-results page: "Add [query] as a new entity" → pre-fills entity create form
-- `[API]` Tag entity created from zero-result search with `source = 'zero_result_search'` — feeds admin growth dashboard
+- `[WEB]` Zero-results page: "Add [query] as a new entity" â†’ pre-fills entity create form
+- `[API]` Tag entity created from zero-result search with `source = 'zero_result_search'` â€” feeds admin growth dashboard
 
 ---
 
-## Phase 8 — Moderation, Trust Safety & Legal Ops *(2–3 weeks)*
+## Phase 8 â€” Moderation, Trust Safety & Legal Ops *(2â€“3 weeks)*
 
 **Goal:** Professional moderation queues, reason codes, evidence redaction, review bombing incidents, user risk scoring, appeal flow.
 
 ### 8.1 Moderation Route Fix `[BLOCKER]`
 
-- `[WEB]` Move `/community/moderation` → admin portal only
+- `[WEB]` Move `/community/moderation` â†’ admin portal only
 - `[WEB]` Remove moderation from community nav; accessible only via header icon for `admin|super_admin|moderator`
 
 ### 8.2 Review Bombing Incident Management `[HIGH]`
@@ -1368,16 +1368,16 @@ Required for clinics, schools, companies, and agencies:
     @@map("review_bombing_incidents")
   }
   ```
-- `[API]` On review save: if `reviewCountInLast24h > avg_daily_reviews × 3` → create `ReviewBombingIncident`; temporarily reduce trust weight of reviews in the spike window
-- `[API]` On incident creation: emit `community_alert` `FeedItem` if severity is high — "Unusual review activity detected on [Entity]"
-- `[API]` Bulk hold: `POST /admin/incidents/:id/hold-reviews` — sets affected reviews to `under_verification`
+- `[API]` On review save: if `reviewCountInLast24h > avg_daily_reviews Ã— 3` â†’ create `ReviewBombingIncident`; temporarily reduce trust weight of reviews in the spike window
+- `[API]` On incident creation: emit `community_alert` `FeedItem` if severity is high â€” "Unusual review activity detected on [Entity]"
+- `[API]` Bulk hold: `POST /admin/incidents/:id/hold-reviews` â€” sets affected reviews to `under_verification`
 - `[API]` Bulk release: `POST /admin/incidents/:id/release-reviews`
 - `[ADMIN]` Moderation queue: "Review Bombing Incidents" sub-queue
 - `[ADMIN]` Incident detail: affected review list with bulk hold/unhold/remove; resolve with reason code
 
 ### 8.3 Moderation Queues `[HIGH]`
 
-- `[API]` `GET /admin/moderation/queues` — queue count summary
+- `[API]` `GET /admin/moderation/queues` â€” queue count summary
 - `[API]` `GET /admin/moderation/cases?queue=reported_reviews|reported_discussions|reported_comments|duplicate_entities|claim_disputes|owner_abuse|suspicious_users|legal_sensitive|auto_flagged|bombing_incidents|correction_requests`
 - `[ADMIN]` Moderation home: queue cards with counts
 - `[ADMIN]` Bulk select + action (hide all selected reviews, etc.)
@@ -1392,47 +1392,47 @@ Required for clinics, schools, companies, and agencies:
 
 ### 8.5 Policy Engine `[HIGH]`
 
-A central service that determines eligibility for key platform actions — prevents scattered logic across controllers:
+A central service that determines eligibility for key platform actions â€” prevents scattered logic across controllers:
 
 - `[API]` `PolicyService` (NestJS provider, no DB model): methods include:
-  - `canReview(userId, entityId)` → check: not deleted, not banned, review interval, per-day limit, verified if required, phone verified if required
-  - `canReply(userId, reviewId)` → check: owns entity, not banned
-  - `canClaim(userId, entityId)` → check: not duplicate claimant, phone verified
-  - `canVote(userId, reviewId)` → check: not own review, not banned
-  - `reviewRequiresVerification(review)` → check: new account, low trust, flagged entity
+  - `canReview(userId, entityId)` â†’ check: not deleted, not banned, review interval, per-day limit, verified if required, phone verified if required
+  - `canReply(userId, reviewId)` â†’ check: owns entity, not banned
+  - `canClaim(userId, entityId)` â†’ check: not duplicate claimant, phone verified
+  - `canVote(userId, reviewId)` â†’ check: not own review, not banned
+  - `reviewRequiresVerification(review)` â†’ check: new account, low trust, flagged entity
 - All limits configurable via `PlatformConfig` (Phase 0.5)
 - `[API]` All relevant controllers use `PolicyService` guard; never duplicate logic inline
 
 ### 8.6 Report Escalation `[HIGH]`
 
-- `[API]` `POST /admin/reports/:id/create-moderation-case` — promote report to full moderation case
+- `[API]` `POST /admin/reports/:id/create-moderation-case` â€” promote report to full moderation case
 - `[ADMIN]` Report detail: "Escalate to Moderation Case" button
 
 ### 8.7 Duplicate Entity Admin Workflow `[HIGH]`
 
 - `[ADMIN]` Duplicates queue at `/admin/entities/duplicates`
 - `[ADMIN]` Side-by-side comparison: name, category, city, phone, address, reviews, claims, followers, trust score
-- `[ADMIN]` Actions: Confirm Duplicate · Reject · Merge A into B · Merge B into A
+- `[ADMIN]` Actions: Confirm Duplicate Â· Reject Â· Merge A into B Â· Merge B into A
 - `[ADMIN]` Legal-sensitive cases: escalation modal with notice template
 
 ### 8.8 User-Facing Report Additions `[MED]`
 
 - `[WEB]` Review report: add "Wrong entity", "Private information" options
-- `[WEB]` Own hidden review: "Appeal" CTA → sends to moderation queue
+- `[WEB]` Own hidden review: "Appeal" CTA â†’ sends to moderation queue
 - `[WEB]` Entity page: "Report incorrect ownership" option in overflow
 
 ### 8.9 Evidence Redaction in Moderation `[MED]`
 
-- `[ADMIN]` Review detail: "Redact sensitive areas" action for public evidence images — uses redacted URL from `EvidenceItem.redactedUrl`
+- `[ADMIN]` Review detail: "Redact sensitive areas" action for public evidence images â€” uses redacted URL from `EvidenceItem.redactedUrl`
 - `[ADMIN]` Mark evidence `private_admin` or `private_owner_on_consent` post-facto
 
 ### 8.10 Entity Alias Management `[LOW]`
 
-- `[ADMIN]` Entity detail: Aliases tab — add, edit, delete aliases per `AliasType`
+- `[ADMIN]` Entity detail: Aliases tab â€” add, edit, delete aliases per `AliasType`
 
 ---
 
-## Phase 9 — SEO, Campaigns, Content & Growth *(2–3 weeks)*
+## Phase 9 â€” SEO, Campaigns, Content & Growth *(2â€“3 weeks)*
 
 **Goal:** Organic traffic through SEO landing pages, schema markup, entity comparison, review invite pages, campaigns aligned to contribution.
 
@@ -1441,10 +1441,10 @@ A central service that determines eligibility for key platform actions — preve
 
 ### 9.1 City & Category Landing Pages `[HIGH]`
 
-- `[WEB]` `/categories/[categoryKey]` — top-rated, most reviewed, recent reviews, common warning tags, "how to choose" guide, FAQ block
-- `[WEB]` `/cities/[citySlug]` — top entities per category in city, recent reviews, trending discussions, claim CTA
-- `[WEB]` `/cities/[citySlug]/[categoryKey]` — city + category combo pages (highest SEO value)
-- `[API]` `GET /cities/:citySlug` · `GET /cities/:citySlug/:categoryKey`
+- `[WEB]` `/categories/[categoryKey]` â€” top-rated, most reviewed, recent reviews, common warning tags, "how to choose" guide, FAQ block
+- `[WEB]` `/cities/[citySlug]` â€” top entities per category in city, recent reviews, trending discussions, claim CTA
+- `[WEB]` `/cities/[citySlug]/[categoryKey]` â€” city + category combo pages (highest SEO value)
+- `[API]` `GET /cities/:citySlug` Â· `GET /cities/:citySlug/:categoryKey`
 - Each landing page links internally to top entities, blog articles, and recent discussions in that space
 
 ### 9.2 SEO & Structured Data `[HIGH]`
@@ -1454,29 +1454,29 @@ A central service that determines eligibility for key platform actions — preve
 - `[WEB]` Review pages: JSON-LD `Review`
 - `[WEB]` Blog pages: JSON-LD `Article`; wire `seoTitle`/`seoDescription` fields to `next/head`
 - `[WEB]` Category/city pages: JSON-LD `Organization` + `BreadcrumbList` + `FAQPage`
-- `[WEB]` `/robots.txt` and `/sitemap.xml` — dynamic, includes entity pages, blog slugs, city/category pages
+- `[WEB]` `/robots.txt` and `/sitemap.xml` â€” dynamic, includes entity pages, blog slugs, city/category pages
 - `[WEB]` All public pages: Open Graph + Twitter Card meta
 
 ### 9.3 Entity Comparison SEO Pages `[HIGH]`
 
-- `[WEB]` `/compare/[entityA]/vs/[entityB]` — side-by-side comparison page with full schema markup
+- `[WEB]` `/compare/[entityA]/vs/[entityB]` â€” side-by-side comparison page with full schema markup
 - `[WEB]` These pages are auto-indexable for "[Entity A] vs [Entity B]" search queries
 
-### 9.4 Blog ↔ Entity Internal Linking `[MED]`
+### 9.4 Blog â†” Entity Internal Linking `[MED]`
 
 - `[DB]` Add to `Blog`: `linkedEntityIds String[] @default([]) @map("linked_entity_ids")`
 - `[ADMIN]` Blog editor: "Link related entities" field
-- `[WEB]` Blog post: shows linked entity cards at the bottom → drives entity page traffic
+- `[WEB]` Blog post: shows linked entity cards at the bottom â†’ drives entity page traffic
 
 ### 9.5 Campaign Quality Rules `[MED]`
 
-- `[API]` Campaign create DTO: add `requiredReviewType?` and `requiredCategoryKey?` — campaigns must target specific contribution types
+- `[API]` Campaign create DTO: add `requiredReviewType?` and `requiredCategoryKey?` â€” campaigns must target specific contribution types
 - Campaign examples: "Review Karachi clinics this week", "Best schools drive", "Report duplicate entities"
 - `[WEB]` Campaign page: show exactly what type of contribution is needed
 
 ### 9.6 Review Invite Landing Pages `[MED]`
 
-- `[WEB]` `/invite/[token]` — public landing page showing entity info + review CTA: "You've been invited to review [Entity Name]"
+- `[WEB]` `/invite/[token]` â€” public landing page showing entity info + review CTA: "You've been invited to review [Entity Name]"
 - `[WEB]` Page accessible without login; login/register required to submit review; redirect back after auth
 
 ### 9.7 Admin Growth Dashboard `[MED]`
@@ -1486,7 +1486,7 @@ A central service that determines eligibility for key platform actions — preve
 
 ---
 
-## Phase 10 — PWA, Performance & Observability *(1–2 weeks)*
+## Phase 10 â€” PWA, Performance & Observability *(1â€“2 weeks)*
 
 ### 10.1 PWA `[HIGH]`
 
@@ -1502,7 +1502,7 @@ A central service that determines eligibility for key platform actions — preve
 
 ### 10.3 Bundle Performance `[MED]`
 
-- `[WEB]` Category extension forms: `next/dynamic` — load only when category selected
+- `[WEB]` Category extension forms: `next/dynamic` â€” load only when category selected
 - `[WEB]` Feed/discussion infinite scroll: virtualize with `@tanstack/react-virtual` for lists >50 items
 
 ### 10.4 Mobile-Specific UX `[MED]`
@@ -1519,39 +1519,39 @@ A central service that determines eligibility for key platform actions — preve
 
 ---
 
-## Phase 11 — Auth Extension & OAuth *(1–2 weeks)*
+## Phase 11 â€” Auth Extension & OAuth *(1â€“2 weeks)*
 
 ### 11.1 Google OAuth `[HIGH]`
 
-- `[API]` `POST /auth/google` — verify idToken with Google SDK, upsert user; if no `cityId` or preferences → `requiresOnboarding: true`
+- `[API]` `POST /auth/google` â€” verify idToken with Google SDK, upsert user; if no `cityId` or preferences â†’ `requiresOnboarding: true`
 - `[WEB]` Login + register: "Continue with Google" button
 
 ### 11.2 Apple OAuth `[MED]`
 
-- `[API]` `POST /auth/apple` — `{ identityToken, authorizationCode }`
+- `[API]` `POST /auth/apple` â€” `{ identityToken, authorizationCode }`
 - `[WEB]` Login + register: "Continue with Apple"
 
 ### 11.3 Account Linking `[MED]`
 
-- `[API]` `POST /me/link/google` · `POST /me/link/apple`
+- `[API]` `POST /me/link/google` Â· `POST /me/link/apple`
 - `[WEB]` Profile settings: "Linked accounts" section
 
 ---
 
-## Phase 12 — Admin Portal Final Polish *(1 week)*
+## Phase 12 â€” Admin Portal Final Polish *(1 week)*
 
 *All functional admin work should be completed in each phase. Phase 12 is polish only.*
 
 - `[ADMIN]` Verify all cross-links between modules are in place
 - `[ADMIN]` Audit trail cross-linking: AuditLog expandable section at bottom of every detail page (entity, user, review, claim)
-- `[ADMIN]` `POST /admin/trust/recalculate/:userId` + `GET /admin/trust/:userId/history` — wire to user detail
-- `[ADMIN]` `POST /admin/badges/recalculate-user/:userId` + `POST /admin/badges/recalculate-entity/:entityId` — wire to detail pages
+- `[ADMIN]` `POST /admin/trust/recalculate/:userId` + `GET /admin/trust/:userId/history` â€” wire to user detail
+- `[ADMIN]` `POST /admin/badges/recalculate-user/:userId` + `POST /admin/badges/recalculate-entity/:entityId` â€” wire to detail pages
 - `[ADMIN]` Consistency pass: all destructive actions (remove, ban, merge, revoke) require confirmation modal with consequence description
 - `[ADMIN]` All moderation/claims/legal-sensitive actions require reason code
 
 ---
 
-## Phase 13 — Owner Communication Center *(2–3 weeks)*
+## Phase 13 â€” Owner Communication Center *(2â€“3 weeks)*
 
 **Goal:** Give owners a professional communication layer beyond review replies. Reduce owner reliance on external channels.
 
@@ -1573,28 +1573,28 @@ A central service that determines eligibility for key platform actions — preve
     @@map("review_removal_requests")
   }
   ```
-- `[API]` `POST /reviews/:id/removal-request` — owner only; `GET /admin/reviews/removal-requests`; `PATCH /admin/reviews/removal-requests/:id`
+- `[API]` `POST /reviews/:id/removal-request` â€” owner only; `GET /admin/reviews/removal-requests`; `PATCH /admin/reviews/removal-requests/:id`
 - `[WEB]` Owner review management: "Request Removal" with reason + evidence upload
 - `[ADMIN]` Queue at `/admin/reviews/removal-requests`
 
 ### 13.2 Bulk Reply Templates `[MED]`
 
-- `[API]` `POST /owner/entities/:id/replies/bulk` — `{ rows: [{ reviewId, templateId }][] }` — saved as drafts pending owner confirmation
-- `[WEB]` Owner reviews tab: bulk select → "Apply template reply to selected" → confirm before publishing
+- `[API]` `POST /owner/entities/:id/replies/bulk` â€” `{ rows: [{ reviewId, templateId }][] }` â€” saved as drafts pending owner confirmation
+- `[WEB]` Owner reviews tab: bulk select â†’ "Apply template reply to selected" â†’ confirm before publishing
 
 ### 13.3 Personal Contribution Impact Dashboard `[HIGH]`
 
-- `[API]` `GET /me/impact-summary`: reviews published · total helpful votes · entities reviewed · owner replies received · issues resolved · community validations · reports confirmed · estimated people helped (heuristic: review view count sum) · longest streak · current badge level
-- `[WEB]` New `/dashboard/impact` page — visual impact summary, shareable impact card (server-rendered via `sharp`, shareable to LinkedIn/WhatsApp)
+- `[API]` `GET /me/impact-summary`: reviews published Â· total helpful votes Â· entities reviewed Â· owner replies received Â· issues resolved Â· community validations Â· reports confirmed Â· estimated people helped (heuristic: review view count sum) Â· longest streak Â· current badge level
+- `[WEB]` New `/dashboard/impact` page â€” visual impact summary, shareable impact card (server-rendered via `sharp`, shareable to LinkedIn/WhatsApp)
 
 ### 13.4 Owner Profile Verification Tier Dashboard `[HIGH]`
 
 - `[WEB]` Entity Trust & Verification tab: step-by-step verification ladder with current level + what's needed to advance to next tier
-- `[API]` `GET /entities/:id/trust-summary` — include `verificationTierLabel` and `verificationTierNext`
+- `[API]` `GET /entities/:id/trust-summary` â€” include `verificationTierLabel` and `verificationTierNext`
 
 ---
 
-## Phase 14 — Trust Intelligence Layer *(3–4 weeks)*
+## Phase 14 â€” Trust Intelligence Layer *(3â€“4 weeks)*
 
 **Goal:** Pattern-aware trust detection using PostgreSQL + scheduled jobs. No external ML pipeline required for v1.
 
@@ -1618,14 +1618,14 @@ A central service that determines eligibility for key platform actions — preve
     @@map("suspicious_reviewer_clusters")
   }
   ```
-- `[API]` Weekly job: detect users who share `fingerprintHash` OR registered within same 24h window AND reviewed same entity; create cluster when ≥3 users match; auto-create `ReviewFlag.flagType = 'coordinated_pattern'` on their reviews
-- `[ADMIN]` `/admin/trust/clusters` — list detected clusters; "Confirm Coordinated" → bulk set to `under_verification` and reduce entity trust score; "Mark False Positive"
+- `[API]` Weekly job: detect users who share `fingerprintHash` OR registered within same 24h window AND reviewed same entity; create cluster when â‰¥3 users match; auto-create `ReviewFlag.flagType = 'coordinated_pattern'` on their reviews
+- `[ADMIN]` `/admin/trust/clusters` â€” list detected clusters; "Confirm Coordinated" â†’ bulk set to `under_verification` and reduce entity trust score; "Mark False Positive"
 
 ### 14.2 Trust Score Velocity Alerts `[HIGH]`
 
 - `[API]` Job (every 6h): compare entity `trustScore` against 7-day rolling average
-  - Drop >15% in 24h → create `ModerationCase` type `trust_score_spike_negative`
-  - Gain >20% in 24h (artificial boost) → create `ModerationCase` type `trust_score_spike_positive`
+  - Drop >15% in 24h â†’ create `ModerationCase` type `trust_score_spike_negative`
+  - Gain >20% in 24h (artificial boost) â†’ create `ModerationCase` type `trust_score_spike_positive`
 - `[ADMIN]` Entity detail: trust score chart shows velocity anomaly markers; "Trust Velocity Alerts" sub-queue
 
 ### 14.3 Contributor Behavior Trust Score `[HIGH]`
@@ -1636,7 +1636,7 @@ A central service that determines eligibility for key platform actions — preve
   reportAccuracyRate   Decimal @default(0) @db.Decimal(3,2)
   accountAgeDays       Int     @default(0) @map("account_age_days")
   ```
-- Formula: `0.4 × (1 - reviewRejectionRate) + 0.3 × reportAccuracyRate + 0.3 × min(accountAgeDays/365, 1)`
+- Formula: `0.4 Ã— (1 - reviewRejectionRate) + 0.3 Ã— reportAccuracyRate + 0.3 Ã— min(accountAgeDays/365, 1)`
 - `[API]` Recalculate on review removed, report confirmed/denied, daily age increment job
 - `[WEB]` Reviews from low-trust users shown with "Limited visibility" styling; `behaviorTrustScore` feeds `ReviewQualityScore.reviewerTrustScore`
 
@@ -1656,7 +1656,7 @@ A central service that determines eligibility for key platform actions — preve
   ```
 - `[WEB]` Entity Trust Overview: "Ranks in top X% of [category] in [city]" chip
 - `[WEB]` Owner dashboard: "How you compare to similar entities" benchmarking card
-- `[API]` `GET /owner/entities/:id/category-insights` — anonymized aggregate stats (no competitor names)
+- `[API]` `GET /owner/entities/:id/category-insights` â€” anonymized aggregate stats (no competitor names)
 
 ### 14.5 Entity Health Score `[HIGH]`
 
@@ -1691,11 +1691,11 @@ Imported reviews should not carry the same trust weight as user-submitted ones:
 ### 14.7 Admin Platform Health Dashboard `[MED]`
 
 - `[API]` `GET /admin/platform-health`: new users/reviews/entities (7d + delta vs prior 7d), claim approval rate, avg moderation resolution hours, auto-flagged review %, trust score coverage, entities with no reviews, top cities/categories by activity, search zero-result rate
-- `[ADMIN]` `/admin/platform-health` — executive health view; export as PDF/CSV
+- `[ADMIN]` `/admin/platform-health` â€” executive health view; export as PDF/CSV
 
 ---
 
-## Phase 15 — Multilingual & Localization *(2–3 weeks)*
+## Phase 15 â€” Multilingual & Localization *(2â€“3 weeks)*
 
 **Goal:** Urdu language support and RTL layout. Critical for Pakistan market penetration beyond urban English-literate users.
 
@@ -1705,7 +1705,7 @@ Imported reviews should not carry the same trust weight as user-submitted ones:
 - `[WEB]` Translation files: `en.json` and `ur.json` for all UI strings
 - `[WEB]` Language switcher: persistent toggle in header; store in `localStorage` + user profile
 - `[DB]` Add to `User`: `preferredLanguage String @default("en") @db.VarChar(10)`
-- `[API]` `PATCH /me` — accept `preferredLanguage`
+- `[API]` `PATCH /me` â€” accept `preferredLanguage`
 
 ### 15.2 RTL Layout `[BLOCKER]`
 
@@ -1724,12 +1724,12 @@ Imported reviews should not carry the same trust weight as user-submitted ones:
 
 - `[DB]` Add to `Review`: `languageCode String @default("en") @db.VarChar(10)`
 - `[API]` Auto-detect language on save using `franc` npm package
-- `[WEB]` Review cards: "اردو" / "English" chip when language ≠ interface language
+- `[WEB]` Review cards: "Ø§Ø±Ø¯Ùˆ" / "English" chip when language â‰  interface language
 - `[WEB]` Review filters on entity page: filter by review language
 
 ---
 
-## Phase 16 — Insights & Intelligence Dashboard *(2–3 weeks)*
+## Phase 16 â€” Insights & Intelligence Dashboard *(2â€“3 weeks)*
 
 **Goal:** Personalized intelligence for every user type. From passive reading to active insight.
 
@@ -1744,21 +1744,21 @@ Imported reviews should not carry the same trust weight as user-submitted ones:
 
 ### 16.2 Owner Category Insights (Anonymous Benchmarking) `[HIGH]`
 
-- `[API]` `GET /owner/entities/:id/category-insights` — anonymized aggregate peer data (no competitor names/IDs):
+- `[API]` `GET /owner/entities/:id/category-insights` â€” anonymized aggregate peer data (no competitor names/IDs):
   ```ts
   { categoryLabel, cityLabel, peerCount, avgTrustScore, avgRating, avgResponseRate, topWarningTagsInCategory, yourRankBand }
   ```
-- `[WEB]` Owner dashboard analytics: "Category Insights" section — "In your category in [city], the average trust score is X. You're above average."
+- `[WEB]` Owner dashboard analytics: "Category Insights" section â€” "In your category in [city], the average trust score is X. You're above average."
 
 ### 16.3 Admin Platform Analytics `[HIGH]`
 
-- `[API]` `GET /admin/platform-health` (from Phase 14.7 — wire full analytics here)
-- `[ADMIN]` `/admin/platform-health` — review volume trends, user growth, category/city activity matrix, SEO landing page visit data
+- `[API]` `GET /admin/platform-health` (from Phase 14.7 â€” wire full analytics here)
+- `[ADMIN]` `/admin/platform-health` â€” review volume trends, user growth, category/city activity matrix, SEO landing page visit data
 
-### 16.4 Entity Timeline — Public Transparency `[MED]`
+### 16.4 Entity Timeline â€” Public Transparency `[MED]`
 
-- `[API]` `GET /entities/:id/timeline` — sanitized public timeline:
-  - Entity created · Claimed · Verified · Merged into · Owner changed · Major complaint spike · Trust score event · Admin warning added
+- `[API]` `GET /entities/:id/timeline` â€” sanitized public timeline:
+  - Entity created Â· Claimed Â· Verified Â· Merged into Â· Owner changed Â· Major complaint spike Â· Trust score event Â· Admin warning added
 - `[WEB]` Entity Trust & Verification tab: public timeline with human-readable labels
 - Builds accountability by making entity history visible
 
@@ -1780,12 +1780,12 @@ Every meaningful platform action should create a `TrustScoreEvent`. Upgrade from
 - `[API]` `TrustEventService`: typed event factory for: `review_created`, `review_verified`, `review_hidden`, `owner_replied`, `issue_resolved`, `entity_claimed`, `claim_revoked`, `duplicate_merged`, `suspicious_cluster_confirmed`, `review_bomb_resolved`
 - Each event carries: `entityId`, `weight` (positive/negative), `description`, `effectiveAt`
 - `[API]` All relevant services emit trust events through `TrustEventService` (not scattered across modules)
-- `[WEB]` Entity Trust & Verification tab: human-readable trust event timeline (from Phase 2.14 — powered by this engine)
+- `[WEB]` Entity Trust & Verification tab: human-readable trust event timeline (from Phase 2.14 â€” powered by this engine)
 - `[ADMIN]` Entity detail: full trust event log
 
 ### Module B: Event Bus
 
-All cross-module triggers go through an internal `EventEmitter2` event bus — prevents circular service injection:
+All cross-module triggers go through an internal `EventEmitter2` event bus â€” prevents circular service injection:
 
 - `[API]` Defined typed events: `ReviewCreatedEvent`, `ReviewHiddenEvent`, `ClaimApprovedEvent`, `EntityMergedEvent`, `BadgeEarnedEvent`, `ReviewBombingDetectedEvent`, `EvidenceFlaggedEvent`
 - Subscribers: `FeedFanoutSubscriber`, `BadgeCheckSubscriber`, `StreakUpdateSubscriber`, `TrustScoreSubscriber`, `NotificationSubscriber`, `AutoFlagSubscriber`
@@ -1793,13 +1793,13 @@ All cross-module triggers go through an internal `EventEmitter2` event bus — p
 
 ### Module C: Policy Engine
 
-*(Specified in Phase 8.5 — centralized here for clarity)*
+*(Specified in Phase 8.5 â€” centralized here for clarity)*
 
 `PolicyService` is the single source of truth for: who can review, who can reply, when review goes under verification, when rate limiting applies. All limits sourced from `PlatformConfig` (Phase 0.5). No policy logic in controllers.
 
 ### Module D: Review Source Tracking
 
-*(Specified in Phase 14.6 — own module for tracking provenance)*
+*(Specified in Phase 14.6 â€” own module for tracking provenance)*
 
 All reviews carry: `source` (user_submitted/admin_imported/invite_submitted/migrated), `importBatchId?`, `inviteId?`. Trust weight and quality scoring adjusted by source. Surfaced in admin + public card labels.
 
@@ -1826,9 +1826,9 @@ All reviews carry: `source` (user_submitted/admin_imported/invite_submitted/migr
 - All limits configurable without redeploy
 
 **Frontend (Next.js)**
-- Loading state hierarchy: `skeleton` (first load) → `spinner overlay` (mutation in progress) → `inline spinner` (background refresh)
-- Error boundary hierarchy: Page-level → Section-level → Inline toast
-- Optimistic UI: follows, saves, votes, reactions, comment post — NOT optimistic for review submit
+- Loading state hierarchy: `skeleton` (first load) â†’ `spinner overlay` (mutation in progress) â†’ `inline spinner` (background refresh)
+- Error boundary hierarchy: Page-level â†’ Section-level â†’ Inline toast
+- Optimistic UI: follows, saves, votes, reactions, comment post â€” NOT optimistic for review submit
 - Old routes always redirect, never 404
 - Guest read behavior on all discovery pages; protected routes for mutations
 - Mobile test standard: 375px width, bottom sheets on mobile (not modals)
@@ -1857,7 +1857,7 @@ All reviews carry: `source` (user_submitted/admin_imported/invite_submitted/migr
 | Paid owner plans | After free owner utility proven | First prove claim, reply, invite, analytics usage |
 | Generic user status posts | Never | Explicitly conflicts with core product decision |
 | Complex campaign leaderboards | Deferred | Keep campaigns tied to review contribution; no scoring complexity |
-| Poll discussion type | **Now included** | Phase 4.4 — DB model is minimal, tied to entity/category/city discussions |
+| Poll discussion type | **Now included** | Phase 4.4 â€” DB model is minimal, tied to entity/category/city discussions |
 | PDF monthly owner report | Phase 14 or later | Phase 14.7 generates the data; `puppeteer` is one endpoint after data is ready |
 
 ---
@@ -1865,61 +1865,61 @@ All reviews carry: `source` (user_submitted/admin_imported/invite_submitted/migr
 ## Implementation Tracking Checklist
 
 ### Phase 0
-- [ ] API client 429/403/5xx/network error handling
-- [ ] Request deduplication + global skeleton component
-- [ ] Socket reconnect and room rejoin + event deduplicate
-- [ ] Optimistic UI for votes/follows/saves/reactions
-- [ ] Feed scroll restoration
-- [ ] Presigned upload flow + client upload component standard
-- [ ] `PlatformConfig` DB model + admin config page
-- [ ] Document login response shape (`requiresVerification` branch)
-- [ ] Enforce `CommunityValidationType` DTO
-- [ ] Show `ReviewQualityScore` on review cards
-- [ ] Show `IssueResolution` status on review cards
-- [ ] `PATCH /notifications/read-all` wired in web
-- [ ] Analytics fire-and-forget + debounce
-- [ ] Onboarding re-entry in dashboard
-- [ ] Invite create: accept maxUses/expiresAt/label
-- [ ] Admin: session error boundary + access denied page
-- [ ] Admin: show UserDevice list on user detail
-- [ ] `X-Request-ID` on all responses
-- [ ] `GET /health/deep` admin endpoint
+- [x] API client 429/403/5xx/network error handling
+- [x] Request deduplication + global skeleton component
+- [x] Socket reconnect and room rejoin + event deduplicate
+- [x] Optimistic UI for votes/follows/saves/reactions
+- [x] Feed scroll restoration
+- [x] Presigned upload flow + client upload component standard
+- [x] `PlatformConfig` DB model + admin config page
+- [x] Document login response shape (`requiresVerification` branch)
+- [x] Enforce `CommunityValidationType` DTO
+- [x] Show `ReviewQualityScore` on review cards
+- [x] Show `IssueResolution` status on review cards
+- [x] `PATCH /notifications/read-all` wired in web
+- [x] Analytics fire-and-forget + debounce
+- [x] Onboarding re-entry in dashboard
+- [x] Invite create: accept maxUses/expiresAt/label
+- [x] Admin: session error boundary + access denied page
+- [x] Admin: show UserDevice list on user detail
+- [x] `X-Request-ID` on all responses
+- [x] `GET /health/deep` admin endpoint
 
 ### Phase 1
-- [ ] `POST /me/avatar` + `DELETE /me/avatar`
-- [ ] `PATCH /me/password`
-- [ ] `POST /me/change-email` + `POST /me/verify-change-email`
-- [ ] `DELETE /me` with PII anonymization
-- [ ] `deactivatedAt` / `deletedReason` DB fields
-- [ ] Username slug: expose in profile + availability endpoint
-- [ ] `GET /users/:usernameOrId` public profile API
-- [ ] `/users/[id]` public profile page with full stats
-- [ ] `UserPrivacySettings` model + API + UI
-- [ ] `contributorLevel` field + background job
-- [ ] `POST /auth/request-phone-otp` + `POST /auth/verify-phone`
-- [ ] `UserLoginEvent` model + write on login
-- [ ] `POST /auth/logout-all`
-- [ ] Recent sign-ins in profile + "Log out all devices"
-- [ ] `UserBanAppeal` model + `POST /me/ban-appeal`
-- [ ] Appeals queue in admin
+- [x] `POST /me/avatar` + `DELETE /me/avatar`
+- [x] `PATCH /me/password`
+- [x] `POST /me/change-email` + `POST /me/verify-change-email`
+- [x] `DELETE /me` with PII anonymization
+- [x] `deactivatedAt` / `deletedReason` DB fields
+- [x] Username slug: expose in profile + availability endpoint
+- [x] `GET /users/:usernameOrId` public profile API
+- [x] `/users/[id]` public profile page with full stats
+- [x] `UserPrivacySettings` model + API + UI
+- [x] `contributorLevel` field + background job
+- [x] `POST /auth/request-phone-otp` + `POST /auth/verify-phone`
+- [x] `UserLoginEvent` model + write on login
+- [x] `POST /auth/logout-all`
+- [x] Recent sign-ins in profile + "Log out all devices"
+- [x] `UserBanAppeal` model + `POST /me/ban-appeal`
+- [x] Appeals queue in admin
 
 ### Phase 2
 - [x] Entity DB fields: logo, cover, gallery, description, website, email, hours, social, lat/lng, displayNameUr
 - [x] `PATCH /entities/:id/profile` endpoint
-- [ ] `isOpenNow` computed in `GET /entities/:id`
-- [ ] `openNow` search filter
-- [ ] `EntityRelationship` model + admin UI
-- [ ] Entity page "Related Entities" tab
+- [x] `isOpenNow` computed in `GET /entities/:id`
+- [x] `openNow` search filter
+- [x] `EntityRelationship` model + admin UI
+- [x] Entity page "Related Entities" tab
 - [x] `GET /entities/:id/trust-summary` with accountability metrics
 - [x] `GET /entities/:id/review-summary` with freshness stats
-- [ ] `EntityVerificationDocument` model + admin tab
-- [ ] `GET /entities/compare` + comparison page
-- [ ] Entity map pin on About tab
-- [ ] Phone/website click tracking
+- [x] `EntityVerificationDocument` model + admin tab
+- [x] `GET /entities/compare` + comparison page
+- [x] Entity map pin on About tab
+- [x] Phone/website click tracking
 - [x] `EntitySuggestedEdit` model + APIs + admin tab
 - [x] `DuplicateCandidate` web surface + merge logic
 - [x] `GET /entities/:id/similar`
-- [ ] `GET /entities/nearby`
+- [x] `GET /entities/nearby`
 - [x] Entity status badges (claimed, under_review, suspended, merged)
 - [x] Verification tier badges (Level 1-5)
 - [x] `EntityResponseMetric` shown on entity page
@@ -1927,25 +1927,25 @@ All reviews carry: `source` (user_submitted/admin_imported/invite_submitted/migr
 - [x] `GET /entities/:id/trust/history` + timeline UI
 
 ### Phase 3
-- [ ] Category-specific review templates (employer/school/hospital/landlord/product)
+- [x] Category-specific review templates (employer/school/hospital/landlord/product)
 - [x] `reviewType` field + form selector
-- [ ] `EvidenceItem` model replacing raw image array
-- [ ] Private evidence upload with visibility toggle
-- [ ] Evidence admin verification queue
-- [ ] Evidence badges: "Evidence attached" / "Private evidence verified"
-- [ ] `ReviewFlag` model + auto-flag pipeline (PII, competitor, profanity, duplicate text)
-- [ ] Admin word-filter management page
+- [x] `EvidenceItem` model replacing raw image array
+- [x] Private evidence upload with visibility toggle
+- [x] Evidence admin verification queue
+- [x] Evidence badges: "Evidence attached" / "Private evidence verified"
+- [x] `ReviewFlag` model + auto-flag pipeline (PII, competitor, profanity, duplicate text)
+- [x] Admin word-filter management page
 - [x] `ReviewQualityScore` expanded fields + `fakeScore` + job
 - [x] `ReviewUpdate` model + APIs + timeline UI
-- [ ] `ReviewCorrectionRequest` model + APIs + notification loop
-- [ ] Correction queue in admin
+- [x] `ReviewCorrectionRequest` model + APIs + notification loop
+- [x] Correction queue in admin
 - [x] `ReviewDraft` model + autosave
-- [ ] Review form: min body validation + category completion meter + preview step
-- [ ] Review freshness indicator on cards
-- [ ] @mention in comments + notification
+- [x] Review form: min body validation + category completion meter + preview step
+- [x] Review freshness indicator on cards
+- [x] @mention in comments + notification
 - [x] Community validation 3-option picker UI
 - [x] IssueResolution confirm/dispute UI
-- [ ] Review share card endpoint
+- [x] Review share card endpoint
 - [x] Admin review detail: quality panel + risk + timeline
 - [x] Admin review actions: request_edit, mark_legal_sensitive, redact
 
@@ -1956,116 +1956,152 @@ All reviews carry: `source` (user_submitted/admin_imported/invite_submitted/migr
 - [x] Feed card components per itemType (including owner_post, question_answered)
 - [x] Feed tabs
 - [x] `POST /feed/hide` + card overflow menu
-- [ ] `DiscussionPoll` + `DiscussionPollOption` + `DiscussionPollVote` models
-- [ ] Poll creation in discussion form + live vote display
+- [x] `DiscussionPoll` + `DiscussionPollOption` + `DiscussionPollVote` models
+- [x] Poll creation in discussion form + live vote display
 - [x] `DiscussionPost` new fields (type, entityId, categoryId, cityId, etc.)
 - [x] `GET /entities/:id/discussions`
-- [ ] Discussion `resolvedAt` + `PATCH /discussions/:id/resolve`
+- [x] Discussion `resolvedAt` + `PATCH /discussions/:id/resolve`
 - [x] `PATCH /discussions/:id` + `DELETE /discussions/:id`
 - [x] `GET /discussions/search`
-- [ ] `SavedSearch` model + APIs + saved searches tab
+- [x] `SavedSearch` model + APIs + saved searches tab
 - [x] `DiscussionComment.parentCommentId` + threading UI
 - [x] Community page redesign as reputation hub
-- [ ] Admin: discussion list filters by type/entity/city
+- [x] Admin: discussion list filters by type/entity/city
 
 ### Phase 5
 - [x] `EntityClaim` new fields + verification levels 1-5
 - [x] Multi-step claim wizard with tier ladder
-- [ ] `OwnerTeamMember` model + team management API
-- [ ] `/owner/entities/[id]/team` page + permission matrix
+- [x] `OwnerTeamMember` model + team management API
+- [x] `/owner/entities/[id]/team` page + permission matrix
 - [x] `/owner/entities/[id]` route group
 - [x] Redirect old owner-dashboard route
 - [x] Owner action center API + UI (includes unanswered Q&A count)
 - [x] Owner KPIs grid + sparklines
-- [ ] `OwnerPost` model + APIs + entity page "Owner Updates" section
-- [ ] `/owner/entities/[id]/posts` management page
-- [ ] `EntityQuestion` + `EntityAnswer` models + APIs
-- [ ] Entity Q&A tab + owner Q&A queue
-- [ ] Q&A notification loop
-- [ ] `WatchlistAlert` model + APIs + entity page "Set Alert"
+- [x] `OwnerPost` model + APIs + entity page "Owner Updates" section
+- [x] `/owner/entities/[id]/posts` management page
+- [x] `EntityQuestion` + `EntityAnswer` models + APIs
+- [x] Entity Q&A tab + owner Q&A queue
+- [x] Q&A notification loop
+- [x] `WatchlistAlert` model + APIs + entity page "Set Alert"
 - [x] `ClaimDispute` model + APIs + admin queue
 - [x] Owner review filters + actions
 - [x] Template auto-suggestion in reply modal
 - [x] Invite: QR code, WhatsApp share, stats per invite
 - [x] Analytics export endpoints
 
+### Audit Notes (2026-04-30)
+- [x] Phase 0.1 reconnect reliability hardened in web socket hooks:
+  - room rejoin on reconnect
+  - in-memory socket event deduplication window
+  - feed `nextCursor` persisted with scroll state
+  - reconnect-triggered feed/discussion refetch to close missed-event gaps
+- [x] Phase 0.9 admin session activity indicator added to admin sidebar (`Active X minutes ago`).
+- [x] Phase 2.4 `GET /entities/:id/owner-accountability` implemented in API trust module and wired for web usage.
+- [x] Discussion creation runtime validation gap fixed in web:
+  - enforce `body >= 10` chars before submit
+  - enforce poll question/options for poll posts
+  - mutation errors handled with toast instead of uncaught runtime error
+- [x] Phase 0-5 audit matrix completed in `docs/phase0-5-implementation-audit-2026-04-30.md`.
+- [x] Phase 0-5 subsection audit completed in `docs/phase0-5-subsection-audit-2026-04-30.md`.
+- [x] Remaining partial items converted to verified:
+  - owner post and Q&A answer feed events
+  - owner action center unanswered Q&A count
+  - owner KPI cards with sparklines
+  - mention notification evidence verified
+- [x] Detailed subsection gaps patched:
+  - `PATCH /me/saved-searches/:id` + weekly saved-search alert job
+  - saved-search alert toggle in dashboard
+  - owner team permission enforcement for team/actions/exports
+  - canonical feed item types `owner_post_published` and `entity_question_answered`
+
 ### Phase 6
-- [ ] New quality activityType values for streaks
-- [ ] `ReviewStreak.shieldCount` + shield logic
-- [ ] Expand `FollowTargetType`: city, user, tag, discussion
-- [ ] `GET /users/:id/followers` + `/following`
-- [ ] Follow recommendations API + widget
-- [ ] `UserReputationScore` model + calculation + `behaviorTrustScore`
-- [ ] `NotificationPreference` model + API
-- [ ] Push subscription API + Web Push emit
-- [ ] `EmailTemplate` model + admin email template page
-- [ ] Email service: resolve template + send
-- [ ] Notification read-all + filter by type + grouping
-- [ ] `/dashboard/reputation` page (merge badges + streaks)
-- [ ] `/dashboard/my-list` with all follow + saved + watchlist tabs
-- [ ] `/dashboard/notification-settings` page
-- [ ] Weekly digest notification job
-- [ ] Redirect /badges /streaks /saved /follows routes
+- [x] New quality activityType values for streaks
+- [x] `ReviewStreak.shieldCount` + shield logic
+- [x] Expand `FollowTargetType`: city, user, tag, discussion
+- [x] `GET /users/:id/followers` + `/following`
+- [x] Follow recommendations API + widget
+- [x] `UserReputationScore` model + calculation + `behaviorTrustScore`
+- [x] `NotificationPreference` model + API
+- [x] Push subscription API + Web Push emit
+- [x] `EmailTemplate` model + admin email template page
+- [x] Email service: resolve template + send
+- [x] Notification read-all + filter by type + grouping
+- [x] `/dashboard/reputation` page (merge badges + streaks)
+- [x] `/dashboard/my-list` with all follow + saved + watchlist tabs
+- [x] `/dashboard/notification-settings` page
+- [x] Weekly digest notification job
+- [x] Redirect /badges /streaks /saved /follows routes
+
+Phase 6 subsection audit completed in `docs/phase6-implementation-audit-2026-04-30.md`.
 
 ### Phase 7
-- [ ] `GET /search/entities/autocomplete`
-- [ ] Global search bar autocomplete
-- [ ] Advanced filters: verified, hasMedia, ownerResponsive, openNow, minReviewCount, proximity
-- [ ] `GET /search/entities?phone=`
-- [ ] `GET /search/related` + "People also searched for" row
-- [ ] `SearchQueryLog` model + write on search + click tracking
-- [ ] Admin search analytics page
-- [ ] `GET /entities/compare` + comparison page + search multi-select
-- [ ] `GET /entities/nearby` + home page "Near you" section
-- [ ] Zero-result → entity creation CTA with pre-fill
+- [x] `GET /search/entities/autocomplete`
+- [x] Global search bar autocomplete
+- [x] Advanced filters: verified, hasMedia, ownerResponsive, openNow, minReviewCount, proximity
+- [x] `GET /search/entities?phone=`
+- [x] `GET /search/related` + "People also searched for" row
+- [x] `SearchQueryLog` model + write on search + click tracking
+- [x] Admin search analytics page
+- [x] `GET /entities/compare` + comparison page + search multi-select
+- [x] `GET /entities/nearby` + home page "Near you" section
+- [x] Zero-result â†’ entity creation CTA with pre-fill
+
+Phase 7 subsection audit completed in `docs/phase7-implementation-audit-2026-05-04.md`.
 
 ### Phase 8
-- [ ] Move moderation to admin only
-- [ ] `ReviewBombingIncident` model + detection job + bulk hold/release
-- [ ] Community alert FeedItem on bombing incident
-- [ ] Moderation queues endpoint with all sub-queue types
-- [ ] `reasonCode` on `ModerationAction` + resolve form
-- [ ] `ReviewCorrectionRequest` admin queue
-- [ ] Case action history timeline in admin
-- [ ] `POST /admin/reports/:id/create-moderation-case`
-- [ ] Duplicate merge admin UI
-- [ ] Claim disputes admin queue
-- [ ] `PolicyService` implementation with `PlatformConfig` integration
-- [ ] Admin word-filter management for profanity
-- [ ] Report: wrong entity + PII options; appeal for hidden review
-- [ ] Evidence redaction action in admin
+- [x] Move moderation to admin only
+- [x] `ReviewBombingIncident` model + detection job + bulk hold/release
+- [x] Community alert FeedItem on bombing incident
+- [x] Moderation queues endpoint with all sub-queue types
+- [x] `reasonCode` on `ModerationAction` + resolve form
+- [x] `ReviewCorrectionRequest` admin queue
+- [x] Case action history timeline in admin
+- [x] `POST /admin/reports/:id/create-moderation-case`
+- [x] Duplicate merge admin UI
+- [x] Claim disputes admin queue
+- [x] `PolicyService` implementation with `PlatformConfig` integration
+- [x] Admin word-filter management for profanity
+- [x] Report: wrong entity + PII options; appeal for hidden review
+- [x] Evidence redaction action in admin
+
+Phase 8 subsection audit completed in `docs/phase8-implementation-audit-2026-05-04.md`.
 
 ### Phase 9
-- [ ] `/categories/[categoryKey]` landing pages
-- [ ] `/cities/[citySlug]` + `/cities/[citySlug]/[categoryKey]` landing pages
-- [ ] JSON-LD schemas on entity, review, Q&A, category, city, blog pages
-- [ ] Sitemap + robots.txt
-- [ ] `/compare/[entityA]/vs/[entityB]`
-- [ ] Blog ↔ entity internal linking
-- [ ] Campaign quality rules (requiredReviewType)
-- [ ] Review invite landing pages `/invite/[token]`
-- [ ] Admin growth dashboard metrics
+- [x] `/categories/[categoryKey]` landing pages
+- [x] `/cities/[citySlug]` + `/cities/[citySlug]/[categoryKey]` landing pages
+- [x] JSON-LD schemas on entity, review, Q&A, category, city, blog pages
+- [x] Sitemap + robots.txt
+- [x] `/compare/[entityA]/vs/[entityB]`
+- [x] Blog â†” entity internal linking
+- [x] Campaign quality rules (requiredReviewType)
+- [x] Review invite landing pages `/invite/[token]`
+- [x] Admin growth dashboard metrics
+
+
+Phase 9 subsection audit completed in `docs/phase9-implementation-audit-2026-05-04.md`.
 
 ### Phase 10
-- [ ] PWA manifest + service worker + Web Push handler
-- [ ] `next/image` on all entity/avatar/cover images
-- [ ] Dynamic imports for category extension forms
-- [ ] Virtualized lists for >50 items
-- [ ] Bottom sheets on mobile for review create / filters / report
-- [ ] Pull-to-refresh on feeds
-- [ ] Client error ring buffer + debug copy button
-- [ ] Slow endpoint monitoring
+- [x] PWA manifest + service worker + Web Push handler
+- [x] `next/image` on all entity/avatar/cover images
+- [x] Dynamic imports for category extension forms
+- [x] Virtualized lists for >50 items
+- [x] Bottom sheets on mobile for review create / filters / report
+- [x] Pull-to-refresh on feeds
+- [x] Client error ring buffer + debug copy button
+- [x] Slow endpoint monitoring
 
 ### Phase 11
-- [ ] `POST /auth/google` + `POST /auth/apple`
-- [ ] `POST /me/link/google` + `POST /me/link/apple`
-- [ ] Login/register social buttons
+- [x] `POST /auth/google` + `POST /auth/apple`
+- [x] `POST /me/link/google` + `POST /me/link/apple`
+- [x] Login/register social buttons
 
 ### Phase 12
-- [ ] AuditLog cross-linking on all detail pages
-- [ ] Trust recalculate + badge recalculate wired to admin detail
-- [ ] Destructive action confirmation modals — consistency pass
-- [ ] Final reason code check across all moderation actions
+- [x] AuditLog cross-linking on all detail pages
+- [x] Trust recalculate + badge recalculate wired to admin detail
+- [x] Destructive action confirmation modals â€” consistency pass
+- [x] Final reason code check across all moderation actions
+
+Phase 10-12 subsection audit completed in `docs/phase10-12-implementation-audit-2026-05-04.md`.
 
 ### Phase 13
 - [ ] `ReviewRemovalRequest` model + owner queue + admin queue
@@ -2111,47 +2147,47 @@ All reviews carry: `source` (user_submitted/admin_imported/invite_submitted/migr
 
 | Phase | Name | DB Migrations | Est. New Endpoints | Duration |
 |---|---|---|---|---|
-| 0 | Foundation Hardening | 1 | ~8 | 1–2 weeks |
-| 1 | User Identity & Profile | 4 | ~14 | 2–3 weeks |
-| 2 | Entity Profile Richness & Trust Graph | 5 | ~18 | 3–4 weeks |
-| 3 | Reviews Quality, Evidence & Lifecycle | 6 | ~14 | 3–4 weeks |
-| 4 | Feed, Community & Discussions | 5 | ~14 | 3–4 weeks |
-| 5 | Claims, Owner Dashboard & Team | 6 | ~16 | 3–4 weeks |
-| 6 | Reputation, Streaks, Badges & Notifications | 4 | ~14 | 3–4 weeks |
-| 7 | Search, Discovery & Comparison | 2 | ~10 | 2–3 weeks |
-| 8 | Moderation, Trust Safety & Legal Ops | 2 | ~10 | 2–3 weeks |
-| 9 | SEO, Campaigns, Content & Growth | 1 | ~8 | 2–3 weeks |
-| 10 | PWA, Performance & Observability | 0 | 0 | 1–2 weeks |
-| 11 | Auth Extension & OAuth | 0 | ~5 | 1–2 weeks |
+| 0 | Foundation Hardening | 1 | ~8 | 1â€“2 weeks |
+| 1 | User Identity & Profile | 4 | ~14 | 2â€“3 weeks |
+| 2 | Entity Profile Richness & Trust Graph | 5 | ~18 | 3â€“4 weeks |
+| 3 | Reviews Quality, Evidence & Lifecycle | 6 | ~14 | 3â€“4 weeks |
+| 4 | Feed, Community & Discussions | 5 | ~14 | 3â€“4 weeks |
+| 5 | Claims, Owner Dashboard & Team | 6 | ~16 | 3â€“4 weeks |
+| 6 | Reputation, Streaks, Badges & Notifications | 4 | ~14 | 3â€“4 weeks |
+| 7 | Search, Discovery & Comparison | 2 | ~10 | 2â€“3 weeks |
+| 8 | Moderation, Trust Safety & Legal Ops | 2 | ~10 | 2â€“3 weeks |
+| 9 | SEO, Campaigns, Content & Growth | 1 | ~8 | 2â€“3 weeks |
+| 10 | PWA, Performance & Observability | 0 | 0 | 1â€“2 weeks |
+| 11 | Auth Extension & OAuth | 0 | ~5 | 1â€“2 weeks |
 | 12 | Admin Portal Final Polish | 0 | ~4 | 1 week |
-| 13 | Owner Communication Center | 2 | ~8 | 2–3 weeks |
-| 14 | Trust Intelligence Layer | 3 | ~10 | 3–4 weeks |
-| 15 | Multilingual & Localization | 1 | ~3 | 2–3 weeks |
-| 16 | Insights & Intelligence Dashboard | 1 | ~6 | 2–3 weeks |
-| **Total** | | **~43 migrations** | **~162 endpoints** | **~36–52 weeks** |
+| 13 | Owner Communication Center | 2 | ~8 | 2â€“3 weeks |
+| 14 | Trust Intelligence Layer | 3 | ~10 | 3â€“4 weeks |
+| 15 | Multilingual & Localization | 1 | ~3 | 2â€“3 weeks |
+| 16 | Insights & Intelligence Dashboard | 1 | ~6 | 2â€“3 weeks |
+| **Total** | | **~43 migrations** | **~162 endpoints** | **~36â€“52 weeks** |
 
 ---
 
 ## Recommended Execution Order
 
-**Small team (2–3 devs) — strict sequence:**
+**Small team (2â€“3 devs) â€” strict sequence:**
 ```
-0 → 1 → 2 → 3 → 5 → 13 → 4 → 7 → 8 → 6 → 14 → 9 → 10 → 11 → 15 → 16 → 12
+0 â†’ 1 â†’ 2 â†’ 3 â†’ 5 â†’ 13 â†’ 4 â†’ 7 â†’ 8 â†’ 6 â†’ 14 â†’ 9 â†’ 10 â†’ 11 â†’ 15 â†’ 16 â†’ 12
 ```
 
-**Parallel team (4–5 devs) — split streams:**
+**Parallel team (4â€“5 devs) â€” split streams:**
 ```
-Stream A (Product/UX):     0 → 1 → 3 → 5 → 4 → 13 → 6 → 7 → 15 → 16
-Stream B (Infra/Admin):    0 → 2 → 8 → 14 → 9 → 10 → 11 → 12
+Stream A (Product/UX):     0 â†’ 1 â†’ 3 â†’ 5 â†’ 4 â†’ 13 â†’ 6 â†’ 7 â†’ 15 â†’ 16
+Stream B (Infra/Admin):    0 â†’ 2 â†’ 8 â†’ 14 â†’ 9 â†’ 10 â†’ 11 â†’ 12
 ```
 
 **Key sequencing rules:**
-- Phase 0 is prerequisite for both streams — always first
-- Phase 3 (review quality scoring) must be live before Phase 14 (trust intelligence) — needs 30 days of quality data
+- Phase 0 is prerequisite for both streams â€” always first
+- Phase 3 (review quality scoring) must be live before Phase 14 (trust intelligence) â€” needs 30 days of quality data
 - Phase 5 (owner team + Q&A) before Phase 13 (owner communication center)
 - Phase 6 (reputation scores) before Phase 14 (behavior trust score uses reputation data)
 - Phase 15 (multilingual) is frontend-heavy and can be parallelized with any phase
-- Phase 14 (Trust Intelligence) requires a 2-day architecture review before implementation — it touches review, user, entity, and moderation modules simultaneously
+- Phase 14 (Trust Intelligence) requires a 2-day architecture review before implementation â€” it touches review, user, entity, and moderation modules simultaneously
 
 ---
 
@@ -2169,7 +2205,7 @@ Stream B (Infra/Admin):    0 → 2 → 8 → 14 → 9 → 10 → 11 → 12
 
 **Frontend (Next.js)**
 - Guest read on all discovery pages; protected routes for all mutations
-- Every mutation: loading → error → success states
+- Every mutation: loading â†’ error â†’ success states
 - Optimistic UI for: votes, follows, saves, reactions, comment post
 - NOT optimistic for: review submit, claim submit, account deletion
 - Mobile responsive, test at 375px; bottom sheets on mobile for forms/filters
