@@ -311,7 +311,7 @@ Constraint:
 ## 4. Entity Fingerprint Strategy
 
 Fingerprint input:
-- normalized display name
+- normalized name
 - city
 - locality
 - category

@@ -140,7 +140,7 @@ Before writing a single new line of code, surface what already exists in Prisma:
 - `[API]` `GET /users/:id/discussions` — paginated public discussions
 - `[API]` `GET /users/:id/reputation` — public reputation summary
 - `[WEB]` New route `/users/[usernameSlug]`:
-  - Avatar, display name, city (if public), bio, member since
+  - Avatar, name, city (if public), bio, member since
   - Contributor level badge + progress
   - Badge grid, streak stats, helpful votes received
   - Public reviews (paginated), public discussions
@@ -847,7 +847,7 @@ Merge `/dashboard/badges` + `/dashboard/streaks` into unified page:
   }
   ```
 - `[API]` `POST /follows` — validate per `targetType` (e.g. for `city`, `targetId` must be valid city UUID; for `tag`, must be valid tag key)
-- `[API]` `GET /me/follows` — return grouped by `targetType` with resolved display names
+- `[API]` `GET /me/follows` — return grouped by `targetType` with resolved  names
 - `[API]` `GET /users/:id/followers` · `GET /users/:id/following`
 - `[WEB]` User profile page: Follow button; followers/following counts
 - `[WEB]` City search results / city landing pages: "Follow this city" option

@@ -1,0 +1,16 @@
+﻿TestCaseID,Area,Feature,Environment,Preconditions,Steps,ExpectedResult,Priority
+SMK-001,Web Auth,Login redirect to feed,Web,"Valid user exists","1. Open /auth/login; 2. Login with valid creds","User lands on /feed with authenticated header",P0
+SMK-002,Web Feed,Mixed feed load + time order,Web,"Seed reviews/discussions","1. Open /feed","Cards load and newest item appears first",P0
+SMK-003,Web Feed,Create discussion realtime,Web+Socket,"Two browsers logged in","1. Browser A create discussion; 2. Observe B","New discussion appears in B without refresh",P0
+SMK-004,Web Feed,Discussion reaction toggle,Web,"Logged in","1. Like discussion; 2. Like again; 3. Dislike","Counts and highlight toggle correctly",P0
+SMK-005,Web Feed,Review comment anon/non-anon + reply,Web,"Logged in","1. Open review comments; 2. Post with anon OFF; 3. Toggle ON and reply","Identity reflects checkbox state",P0
+SMK-006,Web Feed,Discussion comment reaction route working,Web+API,"Backend deployed with comment reaction route","1. React on discussion comment/reply","No Cannot POST error; counts update",P0
+SMK-007,Entity Detail,Tab-based API loading only,Web,"Network tab open","1. Open /entities/:id; 2. Switch tabs","Only active tab APIs fire",P0
+SMK-008,Entity Detail,Entity-linked posts attribution in feed,Web,"Entity-linked post exists","1. Open /feed","Post header shows entity block (name/category/city/rating)",P0
+SMK-009,Entity Reviews,Single anonymous checkbox for comment+reply,Web,"Logged in","1. Open entity review comments; 2. Toggle anon; 3. comment + reply","Both use same checkbox state",P0
+SMK-010,Entity Reviews,Comment/reply reaction toggle + highlight,Web,"Logged in","1. Like/dislike comment; 2. like/dislike reply","Counts and highlight states correct",P0
+SMK-011,API Reviews,Review comment reaction API toggle,API,"Auth token + commentId","1. POST like; 2. POST like again; 3. POST dislike","Response returns correct like/dislike/userReaction",P0
+SMK-012,API Discussions,Discussion comment reaction API toggle,API,"Auth token + commentId","1. POST like; 2. POST like again; 3. POST dislike","Response returns correct like/dislike/userReaction",P0
+SMK-013,Admin Claims,Approve claim and owner unlock,Admin+Web,"Pending claim exists","1. Admin approve claim; 2. Login as owner","Owner features unlocked and visible",P0
+SMK-014,Admin Moderation,Review moderation action reflected on web,Admin+Web,"Review exists","1. Admin hide/approve review; 2. Open entity page","Web reflects moderated state",P0
+SMK-015,Cross Platform,Mobile/LAN access no CORS error,Mobile Web,"Allowed origin configured","1. Open app on mobile LAN URL; 2. login; 3. load feed","API and sockets work without network/CORS error",P0

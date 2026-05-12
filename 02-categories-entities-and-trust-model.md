@@ -102,7 +102,7 @@ Because many people share the same name, a platform must separate entities using
 
 ## 3.1 Fingerprint fields
 Use a weighted combination of:
-- display name,
+- name,
 - category,
 - city,
 - area/neighborhood,
